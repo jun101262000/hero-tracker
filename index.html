@@ -12,7 +12,7 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Firebase (使用瀏覽器相容版本) -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
@@ -20,11 +20,7 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
     body { background-color: #111827; margin: 0; padding: 0; overscroll-behavior: none; }
-    .pixel-font { font-family: 'DotGothic16', sans-serif; }
-    .zhuyin-font, .zhuyin-font *, .zhuyin-font button, .zhuyin-font input, .zhuyin-font textarea { 
-      font-family: 'BpmfGenSenRounded', 'BpmfIansui', sans-serif !important; 
-      line-height: 1.8 !important; 
-    }
+    .pixel-font { font-family: 'DotGothic16', sans-serif; letter-spacing: 1px; }
     .pixel-box { border: 4px solid #fff; box-shadow: 4px 4px 0 #000, -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000; background-color: #222; color: #fff; }
     .pixel-btn { border: 4px solid #fff; box-shadow: 4px 4px 0 #888; transition: all 0.1s; cursor: pointer; }
     .pixel-btn:active { box-shadow: 0 0 0 #888; transform: translate(4px, 4px); }
@@ -43,22 +39,21 @@
     .chat-bubble-player { background: #166534; border: 2px solid #4ade80; border-radius: 8px 8px 0 8px; padding: 10px 14px; max-w: 85%; margin-left: auto; width: fit-content; }
   </style>
 </head>
-<body>
+<body class="pixel-font">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // 👇👇👇 請將下面這段換成您自己的 Firebase Config 👇👇👇
+    // 用戶專屬 Firebase 設定
     const firebaseConfig = {
       apiKey: "AIzaSyDQnmb2kFxQyrm_XTT1BSJOnlsILZR_puY",
-  authDomain: "herotracker-55dae.firebaseapp.com",
-  projectId: "herotracker-55dae",
-  storageBucket: "herotracker-55dae.firebasestorage.app",
-  messagingSenderId: "548324823192",
-  appId: "1:548324823192:web:fe957568df8fe708e880ed"
+      authDomain: "herotracker-55dae.firebaseapp.com",
+      projectId: "herotracker-55dae",
+      storageBucket: "herotracker-55dae.firebasestorage.app",
+      messagingSenderId: "548324823192",
+      appId: "1:548324823192:web:fe957568df8fe708e880ed"
     };
-    // 👆👆👆 替換結束 👆👆👆
 
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
@@ -89,7 +84,7 @@
     const DEFAULT_USERS_DATA = {
       player1: { name: '勇者 Oscar', pin: '1111', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }] },
       player2: { name: '勇者 Roy', pin: '2222', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }] },
-      changelog: [{ date: '發布版', version: 'v.1.0', changes: ['🚀 勇者系統正式發布！']}], adminPin: '9999', settings: { useZhuyin: false }
+      changelog: [{ date: '發布版', version: 'v.1.0', changes: ['🚀 勇者系統正式發布！','✨ 移除注音字體切換功能，提升網頁載入速度與穩定性。','📓 保留交換日記、專屬任務與打卡日曆等核心功能。']}], adminPin: '9999'
     };
 
     function App() {
@@ -118,17 +113,6 @@
       const [alertMsg, setAlertMsg] = useState(null);
       const alertTip = (msg) => { setAlertMsg(msg); setTimeout(() => setAlertMsg(null), 3500); };
       const [confirmDialog, setConfirmDialog] = useState(null);
-
-      useEffect(() => {
-        const loadFont = (id, url) => {
-          if (!document.getElementById(id)) {
-            const link = document.createElement('link'); link.id = id; link.rel = 'stylesheet'; link.href = url;
-            document.head.appendChild(link);
-          }
-        };
-        loadFont('zhuyin-gensen', 'https://cdn.jsdelivr.net/gh/max32002/BpmfGenSenRounded@latest/docs/BpmfGenSenRounded.css');
-        loadFont('zhuyin-iansui', 'https://unpkg.com/bpmfgensenrounded@latest/docs/BpmfGenSenRounded.css');
-      }, []);
 
       useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -314,22 +298,10 @@
         setUsersData(newData); updateCloudData(newData);
       };
 
-      const toggleZhuyin = () => {
-        const newData = { ...usersData, settings: { ...usersData.settings, useZhuyin: !usersData.settings.useZhuyin } };
-        setUsersData(newData); updateCloudData(newData);
-      };
-
-      const fontClass = usersData?.settings?.useZhuyin ? 'zhuyin-font' : 'pixel-font';
-
       const TopBar = () => (
-        <div className="absolute top-2 left-2 md:top-4 md:left-4 flex items-center gap-3 z-10 pixel-font">
+        <div className="absolute top-2 left-2 md:top-4 md:left-4 flex items-center gap-3 z-10">
           <span className="text-xs text-gray-500 font-bold hidden md:inline">{SYSTEM_VERSION}</span>
           <button onClick={() => setShowChangelog(true)} className="text-xs text-blue-400 hover:text-blue-300 underline">[更新日記]</button>
-          {usersData && (
-            <button onClick={toggleZhuyin} className="text-xs bg-yellow-600 text-white px-2 py-1 rounded border border-yellow-800 hover:bg-yellow-500 active:scale-95 shadow-sm font-sans font-bold">
-              {usersData.settings?.useZhuyin ? '切換一般字' : '切換注音 ㄅ'}
-            </button>
-          )}
         </div>
       );
 
@@ -343,7 +315,7 @@
                 const isMe = isAdmin ? m.sender === 'admin' : m.sender !== 'admin';
                 return (
                   <div key={m.id} className={isMe ? 'chat-bubble-player' : 'chat-bubble-admin'}>
-                    <div className="text-[10px] md:text-xs text-gray-300 mb-1 opacity-75 pixel-font">
+                    <div className="text-[10px] md:text-xs text-gray-300 mb-1 opacity-75">
                       {m.sender === 'admin' ? '👑 村長' : usersData[uid].name} • {new Date(m.timestamp).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}
                     </div>
                     <div className="text-sm md:text-base leading-relaxed whitespace-pre-wrap font-bold">{m.text}</div>
@@ -360,18 +332,18 @@
         );
       };
 
-      if (loading) return <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 pixel-font text-white"><div className="text-4xl animate-bounce mb-4">👾</div><p>連線到村莊中...</p></div>;
+      if (loading) return <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 text-white"><div className="text-4xl animate-bounce mb-4">👾</div><p>連線到村莊中...</p></div>;
 
       if (targetLogin) {
         return (
           <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 select-none relative">
             <TopBar />
-            {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded ${fontClass} border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
-            <div className={`pixel-box p-6 w-[90%] max-w-sm text-center ${fontClass}`}>
+            {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
+            <div className={`pixel-box p-6 w-[90%] max-w-sm text-center`}>
               <h2 className="text-xl mb-4 text-yellow-300 font-bold">輸入解鎖密碼</h2>
               <p className="mb-6 text-gray-400 text-sm">登入：{targetLogin === 'admin' ? '村長(管理員)' : usersData[targetLogin].name}</p>
               <div className="text-3xl tracking-widest mb-8 h-10 text-green-400 font-bold bg-black/50 p-2 border border-gray-600 rounded">{pinInput.padEnd(4, ' _').split(' ').join('')}</div>
-              <div className="grid grid-cols-3 gap-3 md:gap-4 mb-2 pixel-font">
+              <div className="grid grid-cols-3 gap-3 md:gap-4 mb-2">
                 {[1,2,3,4,5,6,7,8,9].map(num => <button key={num} onClick={() => handleNumClick(num.toString())} className="pixel-btn bg-gray-700 py-3 text-xl font-bold rounded-sm">{num}</button>)}
                 <button onClick={() => { setTargetLogin(null); setPinInput(''); }} className="pixel-btn bg-red-600 py-3 font-bold text-sm">取消</button>
                 <button onClick={() => handleNumClick('0')} className="pixel-btn bg-gray-700 py-3 text-xl font-bold">0</button>
@@ -387,29 +359,29 @@
           <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 relative">
             <TopBar />
             {showChangelog && (
-              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 ${fontClass}`}>
+              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4`}>
                 <div className="pixel-box p-5 w-full max-w-md max-h-[80vh] flex flex-col">
                   <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2"><h2 className="text-xl text-yellow-300 font-bold">📜 更新日誌</h2><button onClick={() => setShowChangelog(false)} className="text-gray-400 text-xl px-2">✕</button></div>
                   <div className="overflow-y-auto custom-scrollbar pr-2 flex-1 space-y-6">
                     {(usersData?.changelog || INITIAL_CHANGELOG).map((log, idx) => (
-                      <div key={idx} className="border-l-4 border-blue-500 pl-3"><div className="flex items-baseline gap-3 mb-2"><h3 className="text-lg font-bold text-blue-300 pixel-font">{log.version}</h3><span className="text-xs text-gray-400 pixel-font">{log.date}</span></div><ul className="space-y-1">{log.changes.map((c, cIdx) => <li key={cIdx} className="text-sm text-gray-300">{c}</li>)}</ul></div>
+                      <div key={idx} className="border-l-4 border-blue-500 pl-3"><div className="flex items-baseline gap-3 mb-2"><h3 className="text-lg font-bold text-blue-300">{log.version}</h3><span className="text-xs text-gray-400">{log.date}</span></div><ul className="space-y-1">{log.changes.map((c, cIdx) => <li key={cIdx} className="text-sm text-gray-300">{c}</li>)}</ul></div>
                     ))}
                   </div>
                   <button onClick={() => setShowChangelog(false)} className="pixel-btn bg-blue-700 w-full mt-4 py-2 font-bold">關閉</button>
                 </div>
               </div>
             )}
-            <div className="absolute top-2 right-2 md:top-4 md:right-4 flex items-center gap-2 text-xs md:text-sm text-green-400 bg-black/50 px-3 py-1 rounded-full border border-green-900 pixel-font">
+            <div className="absolute top-2 right-2 md:top-4 md:right-4 flex items-center gap-2 text-xs md:text-sm text-green-400 bg-black/50 px-3 py-1 rounded-full border border-green-900">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> 雲端已連線
             </div>
-            <div className={`text-center mb-10 mt-8 ${fontClass}`}><h1 className="text-4xl md:text-5xl lg:text-6xl text-yellow-400 mb-4 font-bold" style={{textShadow: '3px 3px 0 #c2410c'}}>勇者日常挑戰</h1></div>
-            <div className={`space-y-4 w-[90%] max-w-sm ${fontClass}`}>
+            <div className={`text-center mb-10 mt-8`}><h1 className="text-4xl md:text-5xl lg:text-6xl text-yellow-400 mb-4 font-bold" style={{textShadow: '3px 3px 0 #c2410c'}}>勇者日常挑戰</h1></div>
+            <div className={`space-y-4 w-[90%] max-w-sm`}>
               {['player1', 'player2'].map(uid => (
                 <button key={uid} onClick={() => setTargetLogin(uid)} className="pixel-btn bg-blue-600 w-full py-4 text-xl flex items-center justify-center gap-3 hover:bg-blue-500 font-bold">
                   <span className="font-sans font-bold bg-white text-blue-800 px-2 py-1 rounded text-sm shrink-0 shadow-inner">{uid === 'player1' ? 'Oscar' : 'Roy'}</span> <span className="truncate">{usersData[uid].name}</span> 
                 </button>
               ))}
-              <div className="pt-8 mt-8 border-t border-gray-700 pixel-font">
+              <div className="pt-8 mt-8 border-t border-gray-700">
                 <button onClick={() => setTargetLogin('admin')} className="pixel-btn bg-gray-700 w-full py-3 text-sm flex items-center justify-center gap-2 hover:bg-gray-600 text-gray-300 font-bold"><span>⚙️</span> 村長辦公室</button>
               </div>
             </div>
@@ -421,9 +393,9 @@
         return (
           <div className="min-h-screen bg-gray-900 text-white p-2 md:p-4 relative flex flex-col">
             <TopBar />
-            {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded ${fontClass} border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
+            {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
             {confirmDialog && (
-              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 ${fontClass}`}>
+              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4`}>
                 <div className="pixel-box p-6 w-[95%] max-w-sm text-center">
                   <p className="mb-6 text-base whitespace-pre-line leading-relaxed font-bold">{confirmDialog.message}</p>
                   <div className="flex justify-center gap-4">
@@ -433,12 +405,12 @@
                 </div>
               </div>
             )}
-            <div className={`w-full max-w-5xl mx-auto flex-1 flex flex-col pt-8 md:pt-6 ${fontClass}`}>
+            <div className={`w-full max-w-5xl mx-auto flex-1 flex flex-col pt-8 md:pt-6`}>
               <div className="flex justify-between items-center mb-4 bg-gray-800 p-4 border-[3px] border-white shrink-0">
                 <h2 className="text-xl md:text-2xl text-yellow-300 font-bold flex items-center gap-2"><span>👑</span>村長辦公室</h2>
                 <button onClick={() => setView('login')} className="pixel-btn bg-red-600 px-3 py-2 text-sm font-bold">回首頁</button>
               </div>
-              <div className="flex overflow-x-auto gap-2 mb-4 shrink-0 custom-scrollbar pb-2 pixel-font">
+              <div className="flex overflow-x-auto gap-2 mb-4 shrink-0 custom-scrollbar pb-2">
                 {[{ id: 'overview', icon: '📊', label: '總覽與報表' }, { id: 'tasks', icon: '📝', label: '任務管理' }, { id: 'diary', icon: '📓', label: '勇者信箱' }, { id: 'settings', icon: '⚙️', label: '設定' }].map(tab => (
                   <button key={tab.id} onClick={() => setAdminTab(tab.id)} className={`pixel-btn px-4 py-2 text-sm font-bold whitespace-nowrap ${adminTab === tab.id ? 'bg-blue-600' : 'bg-gray-700'}`}>
                     {tab.icon} {tab.label}
@@ -450,7 +422,7 @@
                 {adminTab === 'overview' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-4">
-                      <button onClick={resetDay} className="pixel-btn bg-purple-700 p-6 flex flex-col items-center gap-2 hover:bg-purple-600"><span className="text-3xl">📅</span><span className="font-bold">結算並蓋上日曆章</span><span className="text-xs text-purple-300 pixel-font">(產生明天任務)</span></button>
+                      <button onClick={resetDay} className="pixel-btn bg-purple-700 p-6 flex flex-col items-center gap-2 hover:bg-purple-600"><span className="text-3xl">📅</span><span className="font-bold">結算並蓋上日曆章</span><span className="text-xs text-purple-300">(產生明天任務)</span></button>
                     </div>
                     <div>
                       <h3 className="text-lg text-blue-300 mb-2 font-bold">今日任務全覽</h3>
@@ -480,10 +452,10 @@
                       <div className="flex flex-col md:flex-row gap-3">
                         <input type="text" placeholder="任務名稱" value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm, title: e.target.value})} className="flex-1 bg-black border border-gray-500 p-2 text-white outline-none text-sm font-bold" />
                         <div className="flex gap-2">
-                          <select value={newTaskForm.freqType} onChange={e=>setNewTaskForm({...newTaskForm, freqType: e.target.value})} className="bg-black border border-gray-500 p-2 text-white outline-none text-sm pixel-font cursor-pointer font-bold">
+                          <select value={newTaskForm.freqType} onChange={e=>setNewTaskForm({...newTaskForm, freqType: e.target.value})} className="bg-black border border-gray-500 p-2 text-white outline-none text-sm cursor-pointer font-bold">
                             <option value="daily">每天</option><option value="interval">間隔天數</option><option value="weekly">每週特定</option><option value="once">只有一次</option>
                           </select>
-                          {newTaskForm.freqType === 'interval' && <div className="flex items-center gap-1 bg-black border border-gray-500 px-2"><input type="number" min="1" value={newTaskForm.freqValue} onChange={e=>setNewTaskForm({...newTaskForm, freqValue: e.target.value})} className="w-10 bg-transparent text-green-400 text-center outline-none pixel-font font-bold" /><span className="font-bold text-sm">天一次</span></div>}
+                          {newTaskForm.freqType === 'interval' && <div className="flex items-center gap-1 bg-black border border-gray-500 px-2"><input type="number" min="1" value={newTaskForm.freqValue} onChange={e=>setNewTaskForm({...newTaskForm, freqValue: e.target.value})} className="w-10 bg-transparent text-green-400 text-center outline-none font-bold" /><span className="font-bold text-sm">天一次</span></div>}
                         </div>
                       </div>
                       {newTaskForm.freqType === 'weekly' && (
@@ -503,7 +475,7 @@
                         return (
                           <div key={t.id} className="flex justify-between items-center bg-gray-800 p-2 mb-2 border border-gray-600">
                             <div className="flex flex-col flex-1 truncate mr-2"><span className="font-bold text-sm">{idx + 1}. {t.title}</span><span className="text-xs text-gray-400 font-bold">🕒 頻率: {freqLabel}</span></div>
-                            <button onClick={()=>handleDeletePersonalTask(adminTargetPlayer, t.id)} className="pixel-btn bg-red-800 px-3 py-1 text-xs shrink-0 pixel-font">刪除</button>
+                            <button onClick={()=>handleDeletePersonalTask(adminTargetPlayer, t.id)} className="pixel-btn bg-red-800 px-3 py-1 text-xs shrink-0">刪除</button>
                           </div>
                         );
                       })}
@@ -527,7 +499,7 @@
                   <div className="space-y-6">
                     <div className="bg-gray-900 p-4 border border-gray-700">
                       <div className="text-red-400 mb-3 font-bold">👑 村長帳號設定</div>
-                      <div className="flex items-end gap-3"><div className="flex-1"><label className="block text-gray-400 mb-1 text-sm font-bold">修改 4 位數密碼：</label><input type="text" maxLength={4} value={editAdminPin} onChange={(e) => setEditAdminPin(e.target.value.replace(/\D/g,''))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none pixel-font font-bold" /></div><button onClick={saveAdminPin} className="pixel-btn bg-red-800 px-4 py-2 font-bold shrink-0">儲存</button></div>
+                      <div className="flex items-end gap-3"><div className="flex-1"><label className="block text-gray-400 mb-1 text-sm font-bold">修改 4 位數密碼：</label><input type="text" maxLength={4} value={editAdminPin} onChange={(e) => setEditAdminPin(e.target.value.replace(/\D/g,''))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" /></div><button onClick={saveAdminPin} className="pixel-btn bg-red-800 px-4 py-2 font-bold shrink-0">儲存</button></div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {['player1', 'player2'].map(uid => (
@@ -535,7 +507,7 @@
                           <div className="text-yellow-400 mb-3 font-bold">{uid === 'player1' ? 'Oscar' : 'Roy'} 設定</div>
                           <div className="space-y-3">
                             <div><label className="block text-gray-400 mb-1 text-sm font-bold">顯示名稱：</label><input type="text" value={editSettings[uid].name} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], name: e.target.value }}))} className="w-full bg-black border border-gray-500 p-2 text-white outline-none font-bold" /></div>
-                            <div><label className="block text-gray-400 mb-1 text-sm font-bold">4位數密碼：</label><input type="text" maxLength={4} value={editSettings[uid].pin} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], pin: e.target.value.replace(/\D/g,'') }}))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none pixel-font font-bold" /></div>
+                            <div><label className="block text-gray-400 mb-1 text-sm font-bold">4位數密碼：</label><input type="text" maxLength={4} value={editSettings[uid].pin} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], pin: e.target.value.replace(/\D/g,'') }}))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" /></div>
                             <button onClick={() => saveUserSettings(uid)} className="pixel-btn bg-blue-700 w-full py-2 font-bold text-sm">更新資料</button>
                           </div>
                         </div>
@@ -560,16 +532,16 @@
       return (
         <div className="min-h-screen bg-gray-900 text-white relative flex flex-col">
           <TopBar />
-          {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded ${fontClass} border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
+          {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
           
           {showCalendar && (
-            <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 ${fontClass}`}>
+            <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4`}>
               <div className="pixel-box p-4 md:p-6 w-full max-w-md flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2 shrink-0"><h2 className="text-xl text-yellow-300 font-bold">📅 我的打卡日曆</h2><button onClick={() => {setShowCalendar(false); setCalMonthOffset(0);}} className="text-gray-400 text-xl px-2">✕</button></div>
                 <div className="w-full">
                   <div className="flex justify-between items-center mb-4 px-2">
                     <button onClick={() => setCalMonthOffset(p => p - 1)} className="pixel-btn bg-gray-700 px-3 py-1 font-bold">◀</button>
-                    <span className="text-xl text-yellow-300 font-bold tracking-widest pixel-font">{new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getFullYear()} / {String(new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getMonth() + 1).padStart(2, '0')}</span>
+                    <span className="text-xl text-yellow-300 font-bold tracking-widest">{new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getFullYear()} / {String(new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getMonth() + 1).padStart(2, '0')}</span>
                     <button onClick={() => setCalMonthOffset(p => p + 1)} className="pixel-btn bg-gray-700 px-3 py-1 font-bold">▶</button>
                   </div>
                   <div className="grid grid-cols-7 gap-1 text-center mb-2 font-bold text-gray-400"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
@@ -588,7 +560,7 @@
                         else if (ratio >= 0.5) { stamp = '🟢'; bgClass = 'bg-green-900/40 border-green-500/50'; } 
                         else { stamp = '⭕'; bgClass = 'bg-orange-900/40 border-orange-500/50'; }
                       } else if (dStr === TODAY_STR) bgClass = 'bg-blue-900/40 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]';
-                      return (<div key={d} className={`flex flex-col items-center justify-center border p-1 rounded-sm aspect-square relative ${bgClass}`}><span className="text-[10px] md:text-xs text-gray-300 absolute top-1 left-1 pixel-font">{d}</span><span className="text-xl md:text-2xl mt-3">{stamp}</span></div>);
+                      return (<div key={d} className={`flex flex-col items-center justify-center border p-1 rounded-sm aspect-square relative ${bgClass}`}><span className="text-[10px] md:text-xs text-gray-300 absolute top-1 left-1">{d}</span><span className="text-xl md:text-2xl mt-3">{stamp}</span></div>);
                     })}
                   </div>
                 </div>
@@ -598,7 +570,7 @@
           )}
 
           {showDiary && (
-            <div className={`fixed inset-0 bg-black/90 z-[100] flex flex-col ${fontClass}`}>
+            <div className={`fixed inset-0 bg-black/90 z-[100] flex flex-col`}>
               <div className="flex justify-between items-center p-3 md:p-4 bg-gray-900 border-b-4 border-gray-600 shrink-0">
                 <h2 className="text-xl text-yellow-300 font-bold">📓 寫給村長的交換日記</h2>
                 <button onClick={() => setShowDiary(false)} className="text-gray-400 text-3xl font-bold px-2">✕</button>
@@ -610,7 +582,7 @@
           )}
 
           {celebration.show && (
-            <div onClick={() => setCelebration(prev => ({ ...prev, show: false }))} className={`fixed inset-0 bg-black/70 flex items-center justify-center z-[110] p-4 ${fontClass} backdrop-blur-sm cursor-pointer`}>
+            <div onClick={() => setCelebration(prev => ({ ...prev, show: false }))} className={`fixed inset-0 bg-black/70 flex items-center justify-center z-[110] p-4 backdrop-blur-sm cursor-pointer`}>
               <div className="relative overflow-hidden pixel-box p-6 md:p-10 w-[90%] max-w-md text-center celebrate-pop border-yellow-400 bg-gray-800 shadow-[0_0_40px_rgba(253,224,71,0.3)]">
                 <div className="spin-glow"></div>
                 <div className="relative z-10">
@@ -624,11 +596,11 @@
             </div>
           )}
           
-          <div className={`w-full max-w-4xl mx-auto flex-1 flex flex-col p-2 md:p-6 pt-10 md:pt-4 pb-24 md:pb-28 ${fontClass}`}>
+          <div className={`w-full max-w-4xl mx-auto flex-1 flex flex-col p-2 md:p-6 pt-10 md:pt-4 pb-24 md:pb-28`}>
             <div className="pixel-box p-3 md:p-5 mb-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-gray-800 shrink-0">
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="w-14 h-14 bg-blue-900 border-2 border-white flex items-center justify-center font-sans font-bold text-lg md:text-xl shrink-0 shadow-inner pixel-font">{avatarText}</div>
-                <div className="flex-1"><h2 className="text-lg md:text-xl text-yellow-300 font-bold">{user.name}</h2><p className="text-xs text-gray-300 pixel-font">Lv.{Math.floor(user.points / 10) + 1} | 總累積: {user.points} EXP</p></div>
+                <div className="w-14 h-14 bg-blue-900 border-2 border-white flex items-center justify-center font-sans font-bold text-lg md:text-xl shrink-0 shadow-inner">{avatarText}</div>
+                <div className="flex-1"><h2 className="text-lg md:text-xl text-yellow-300 font-bold">{user.name}</h2><p className="text-xs text-gray-300">Lv.{Math.floor(user.points / 10) + 1} | 總累積: {user.points} EXP</p></div>
               </div>
               <div className="flex gap-2 shrink-0 self-end sm:self-auto">
                 <button onClick={() => {setCurrentUser(null); setView('login');}} className="pixel-btn bg-red-600 px-3 py-2 active:bg-red-500 font-bold text-sm">登出</button>
@@ -647,9 +619,9 @@
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 flex-1 items-start content-start overflow-y-auto custom-scrollbar pr-1 pb-4">
                   {user.tasks.map(task => (
                     <div key={task.id} onClick={() => toggleTask(task.id)} className={`relative cursor-pointer border-[3px] p-2 flex flex-col items-center justify-center transition-all duration-200 min-h-[90px] md:min-h-[110px] rounded-lg select-none overflow-hidden ${task.completed ? 'border-green-500 bg-green-900/30 scale-95 opacity-80 shadow-inner' : 'border-gray-500 bg-gray-700 hover:bg-gray-600 shadow-[0_4px_0_rgb(107,114,128)] active:shadow-none active:translate-y-1'}`}>
-                      {task.completed && <div className="absolute inset-0 flex items-center justify-center card-check-anim pointer-events-none"><span className="text-[60px] md:text-[80px] text-green-500 pixel-font">✓</span></div>}
+                      {task.completed && <div className="absolute inset-0 flex items-center justify-center card-check-anim pointer-events-none"><span className="text-[60px] md:text-[80px] text-green-500">✓</span></div>}
                       <span className={`relative z-10 text-[15px] md:text-[17px] font-bold text-center leading-snug px-1 ${task.completed ? 'text-gray-400 line-through' : 'text-white'}`}>{task.title}</span>
-                      {animatingTask === task.id && <div className="exp-float font-bold text-sm pixel-font">+1 EXP</div>}
+                      {animatingTask === task.id && <div className="exp-float font-bold text-sm">+1 EXP</div>}
                     </div>
                   ))}
                 </div>
@@ -657,7 +629,7 @@
             </div>
           </div>
 
-          <div className={`fixed bottom-0 left-0 w-full bg-gray-900 border-t-4 border-gray-600 p-2 md:p-4 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.7)] ${fontClass}`}>
+          <div className={`fixed bottom-0 left-0 w-full bg-gray-900 border-t-4 border-gray-600 p-2 md:p-4 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.7)]`}>
             <div className="max-w-4xl mx-auto flex flex-col gap-2">
               <div className="flex justify-between items-end">
                 <div className="flex items-center gap-2">
@@ -670,8 +642,8 @@
                   </button>
                 </div>
                 <div className="text-right">
-                  <div className="text-yellow-300 font-bold text-xs md:text-sm mb-1 pixel-font tracking-widest">{currentTime.toLocaleDateString('zh-TW')} {currentTime.toLocaleTimeString('zh-TW', { hour12: false })}</div>
-                  <div className="text-blue-300 bg-blue-900/50 px-2 py-1 rounded text-xs md:text-sm font-bold inline-block pixel-font">完成：{completedCount} / {totalCount} ({progressPercent}%)</div>
+                  <div className="text-yellow-300 font-bold text-xs md:text-sm mb-1 tracking-widest">{currentTime.toLocaleDateString('zh-TW')} {currentTime.toLocaleTimeString('zh-TW', { hour12: false })}</div>
+                  <div className="text-blue-300 bg-blue-900/50 px-2 py-1 rounded text-xs md:text-sm font-bold inline-block">完成：{completedCount} / {totalCount} ({progressPercent}%)</div>
                 </div>
               </div>
               <div className="w-full h-3 md:h-4 border-2 border-white bg-black rounded-sm overflow-hidden relative">
