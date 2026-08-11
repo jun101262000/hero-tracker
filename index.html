@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>勇者日常挑戰</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Firebase (使用瀏覽器相容版本) -->
+  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+    body { background-color: #111827; margin: 0; padding: 0; overscroll-behavior: none; }
+    .pixel-font { font-family: 'DotGothic16', sans-serif; }
+    .zhuyin-font, .zhuyin-font *, .zhuyin-font button, .zhuyin-font input, .zhuyin-font textarea { 
+      font-family: 'BpmfGenSenRounded', 'BpmfIansui', sans-serif !important; 
+      line-height: 1.8 !important; 
+    }
+    .pixel-box { border: 4px solid #fff; box-shadow: 4px 4px 0 #000, -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000; background-color: #222; color: #fff; }
+    .pixel-btn { border: 4px solid #fff; box-shadow: 4px 4px 0 #888; transition: all 0.1s; cursor: pointer; }
+    .pixel-btn:active { box-shadow: 0 0 0 #888; transform: translate(4px, 4px); }
+    .card-check-anim { animation: cardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+    @keyframes cardPop { 0% { transform: scale(0.2); opacity: 0; } 60% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 0.2; } }
+    .exp-float { position: absolute; color: #0f0; font-weight: bold; animation: floatUp 0.8s ease-out forwards; pointer-events: none; z-index: 10; text-shadow: 1px 1px 0 #000; }
+    @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.5); } }
+    .celebrate-pop { animation: popInBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+    @keyframes popInBounce { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+    .spin-glow { position: absolute; inset: -50%; background: conic-gradient(from 0deg, transparent, rgba(253,224,71,0.2) 20%, transparent 40%); animation: spin 3s linear infinite; pointer-events: none; z-index: -1; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #111; border: 1px solid #555; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border: 1px solid #fff; }
+    .chat-bubble-admin { background: #1e3a8a; border: 2px solid #60a5fa; border-radius: 8px 8px 8px 0; padding: 10px 14px; max-w: 85%; width: fit-content; }
+    .chat-bubble-player { background: #166534; border: 2px solid #4ade80; border-radius: 8px 8px 0 8px; padding: 10px 14px; max-w: 85%; margin-left: auto; width: fit-content; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // 👇👇👇 請將下面這段換成您自己的 Firebase Config 👇👇👇
+    const firebaseConfig = {
+      apiKey: "AIzaSyDQnmb2kFxQyrm_XTT1BSJOnlsILZR_puY",
+  authDomain: "herotracker-55dae.firebaseapp.com",
+  projectId: "herotracker-55dae",
+  storageBucket: "herotracker-55dae.firebasestorage.app",
+  messagingSenderId: "548324823192",
+  appId: "1:548324823192:web:fe957568df8fe708e880ed"
+    };
+    // 👆👆👆 替換結束 👆👆👆
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const appId = 'my-hero-tracker-app';
+
+    const SYSTEM_VERSION = `v.${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}`;
+    const TODAY_STR = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+    const NOW = Date.now();
+    const getDaysDiff = (date1, date2) => Math.floor((new Date(date2.getFullYear(), date2.getMonth(), date2.getDate()).getTime() - new Date(date1.getFullYear(), date1.getMonth(), date1.getDate()).getTime()) / 86400000);
+
+    const INITIAL_COMMON_TASKS = [
+      { id: 't4', title: '暑假作業(簽名)', freqType: 'daily' }, { id: 't5', title: '英文作業(簽名)', freqType: 'daily' },
+      { id: 't6', title: '念句子', freqType: 'daily' }, { id: 't7', title: '背單字', freqType: 'daily' },
+      { id: 't8', title: '看書 2 本', freqType: 'daily' }, { id: 't1', title: '整理書桌', freqType: 'daily' },
+      { id: 't9', title: '洗碗', freqType: 'daily' }, { id: 't10', title: '洗餐盒', freqType: 'daily' },
+      { id: 't12', title: '收餐盒', freqType: 'daily' }, { id: 't13', title: '洗水壺', freqType: 'daily' },
+      { id: 't14', title: '裝水', freqType: 'daily' }, { id: 't3', title: '收衣服', freqType: 'daily' },
+      { id: 't2', title: '書包歸位', freqType: 'daily' }, { id: 't11', title: '洗澡(晾毛巾刷牙)', freqType: 'daily' },
+      { id: 't15', title: '明天的服裝', freqType: 'daily' }, { id: 't16', title: '明天的用品', freqType: 'daily' }
+    ];
+
+    const OSCAR_TASKS = [...INITIAL_COMMON_TASKS.map(t => ({...t, createdAt: NOW})), { id: 't_zinc', title: '吃鋅片', freqType: 'interval', freqValue: 2, createdAt: NOW }];
+    const ROY_TASKS = INITIAL_COMMON_TASKS.map(t => ({...t, createdAt: NOW}));
+
+    const DEFAULT_USERS_DATA = {
+      player1: { name: '勇者 Oscar', pin: '1111', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }] },
+      player2: { name: '勇者 Roy', pin: '2222', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }] },
+      changelog: [{ date: '發布版', version: 'v.1.0', changes: ['🚀 勇者系統正式發布！']}], adminPin: '9999', settings: { useZhuyin: false }
+    };
+
+    function App() {
+      const [userAuth, setUserAuth] = useState(null);
+      const [usersData, setUsersData] = useState(null);
+      const [currentUser, setCurrentUser] = useState(null);
+      const [view, setView] = useState('login'); 
+      const [pinInput, setPinInput] = useState('');
+      const [targetLogin, setTargetLogin] = useState(null);
+      const [animatingTask, setAnimatingTask] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [showCalendar, setShowCalendar] = useState(false);
+      const [showDiary, setShowDiary] = useState(false);
+      const [showChangelog, setShowChangelog] = useState(false);
+      const [calMonthOffset, setCalMonthOffset] = useState(0); 
+      const [celebration, setCelebration] = useState({ show: false, title: '', message: '', type: '' });
+      const [adminTab, setAdminTab] = useState('overview'); 
+      const [adminTargetPlayer, setAdminTargetPlayer] = useState('player1');
+      const [reportModal, setReportModal] = useState(null);
+      const [editSettings, setEditSettings] = useState({ player1: { name: '', pin: '' }, player2: { name: '', pin: '' } });
+      const [editAdminPin, setEditAdminPin] = useState('');
+      const [newTaskForm, setNewTaskForm] = useState({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] });
+      const [diaryInput, setDiaryInput] = useState('');
+      const diaryEndRef = useRef(null);
+      const [alertMsg, setAlertMsg] = useState(null);
+      const alertTip = (msg) => { setAlertMsg(msg); setTimeout(() => setAlertMsg(null), 3500); };
+      const [confirmDialog, setConfirmDialog] = useState(null);
+
+      useEffect(() => {
+        const loadFont = (id, url) => {
+          if (!document.getElementById(id)) {
+            const link = document.createElement('link'); link.id = id; link.rel = 'stylesheet'; link.href = url;
+            document.head.appendChild(link);
+          }
+        };
+        loadFont('zhuyin-gensen', 'https://cdn.jsdelivr.net/gh/max32002/BpmfGenSenRounded@latest/docs/BpmfGenSenRounded.css');
+        loadFont('zhuyin-iansui', 'https://unpkg.com/bpmfgensenrounded@latest/docs/BpmfGenSenRounded.css');
+      }, []);
+
+      useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      useEffect(() => {
+        auth.signInAnonymously().catch(e => console.error(e));
+        const unsubscribe = auth.onAuthStateChanged(setUserAuth);
+        return () => unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        if (!userAuth) return;
+        const gameDataRef = db.collection('hero_tracker_live').doc(appId).collection('users').doc(userAuth.uid).collection('gamedata').doc('main');
+        
+        const setupData = async () => {
+          const docSnap = await gameDataRef.get();
+          if (!docSnap.exists) {
+            await gameDataRef.set(DEFAULT_USERS_DATA);
+          }
+        };
+        setupData();
+
+        const unsubscribe = gameDataRef.onSnapshot(docSnap => {
+          if (docSnap.exists) {
+            const data = docSnap.data();
+            if(data.player1 && data.player2) {
+               setUsersData(data);
+               setEditSettings({ player1: { name: data.player1.name, pin: data.player1.pin }, player2: { name: data.player2.name, pin: data.player2.pin } });
+               setEditAdminPin(data.adminPin || '9999');
+            }
+            setLoading(false);
+          }
+        });
+        return () => unsubscribe();
+      }, [userAuth]);
+
+      const updateCloudData = async (newData) => {
+        if (!userAuth) return;
+        const gameDataRef = db.collection('hero_tracker_live').doc(appId).collection('users').doc(userAuth.uid).collection('gamedata').doc('main');
+        await gameDataRef.update(newData);
+      };
+
+      useEffect(() => {
+        if (showDiary || adminTab === 'diary') setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 150);
+      }, [showDiary, adminTab, adminTargetPlayer, usersData?.player1?.diary, usersData?.player2?.diary]);
+
+      useEffect(() => {
+        if (celebration.show) {
+          const timer = setTimeout(() => { setCelebration(prev => ({ ...prev, show: false })); }, 2500); 
+          return () => clearTimeout(timer);
+        }
+      }, [celebration.show]);
+
+      useEffect(() => {
+        if (pinInput.length === 4 && usersData) {
+          let isError = false;
+          if (targetLogin === 'admin') { if (pinInput === usersData.adminPin) setView('admin'); else isError = true; } 
+          else {
+            if (pinInput === usersData[targetLogin].pin) { setCurrentUser(targetLogin); setView('game'); } 
+            else isError = true;
+          }
+          if (isError) alertTip(`密碼錯誤！`);
+          setPinInput(''); setTargetLogin(null);
+        }
+      }, [pinInput, targetLogin, usersData]);
+
+      const handleNumClick = (num) => { if (pinInput.length < 4) setPinInput(prev => prev + num); };
+
+      const shouldTaskAppear = (task, dateObj) => {
+        if (task.freqType === 'daily' || task.freqType === 'once') return true;
+        if (task.freqType === 'weekly') return task.freqValue.includes(dateObj.getDay());
+        if (task.freqType === 'interval') return getDaysDiff(new Date(task.createdAt), dateObj) % task.freqValue === 0;
+        return true;
+      };
+
+      const resetDay = () => {
+        setConfirmDialog({
+          message: '確定要結束今天，重置並產生明天的任務嗎？',
+          onConfirm: () => {
+            const nextData = { ...usersData };
+            const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+            ['player1', 'player2'].forEach(uid => {
+              const user = nextData[uid];
+              const nextHistory = { ...user.history };
+              const completedCount = user.tasks.filter(t => t.completed).length;
+              user.tasks.forEach(t => {
+                if (!nextHistory[t.id]) nextHistory[t.id] = { consecutive: 0, missed: 0 };
+                if (t.completed) { nextHistory[t.id].consecutive += 1; nextHistory[t.id].missed = 0; } else { nextHistory[t.id].consecutive = 0; nextHistory[t.id].missed += 1; }
+              });
+              const newDailyRecords = { ...user.dailyRecords };
+              newDailyRecords[TODAY_STR] = { c: completedCount, t: user.tasks.length };
+              const newPersonalTasks = user.personalTasks.filter(pt => {
+                if (pt.freqType === 'once') { const activeT = user.tasks.find(t => t.id === pt.id); if (activeT && activeT.completed) return false; }
+                return true;
+              });
+              const nextActiveTasks = [];
+              newPersonalTasks.forEach(pt => { if (shouldTaskAppear(pt, tomorrow)) nextActiveTasks.push({ id: pt.id, title: pt.title, completed: false }); });
+              nextData[uid] = { ...user, history: nextHistory, dailyRecords: newDailyRecords, personalTasks: newPersonalTasks, tasks: nextActiveTasks };
+            });
+            setUsersData(nextData); updateCloudData(nextData); alertTip('明天任務產生完成！'); setConfirmDialog(null);
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
+      const toggleTask = (taskId) => {
+        if (!usersData || !currentUser || celebration.show) return;
+        const user = usersData[currentUser];
+        const taskIndex = user.tasks.findIndex(t => t.id === taskId);
+        if (taskIndex === -1) return;
+        const task = user.tasks[taskIndex];
+        const isCompleting = !task.completed;
+        const newTasks = [...user.tasks];
+        newTasks[taskIndex] = { ...task, completed: isCompleting };
+
+        if (isCompleting) {
+          setAnimatingTask(taskId); setTimeout(() => setAnimatingTask(null), 800);
+          const remainingCount = newTasks.length - newTasks.filter(t => t.completed).length;
+          const completedCount = newTasks.filter(t => t.completed).length;
+          if (remainingCount === 0) setCelebration({ show: true, type: 'perfect', title: '🌟 完美達成 🌟', message: '太厲害了！你完成了今天所有的挑戰！' });
+          else if (remainingCount <= 3) setCelebration({ show: true, type: 'countdown', title: '🔥 最後衝刺 🔥', message: `太棒了！只差最後 ${remainingCount} 個就能全數完成了！` });
+          else if (completedCount % 5 === 0) setCelebration({ show: true, type: 'milestone', title: '✨ 恭喜達成 ✨', message: `連續突破！已經完成 ${completedCount} 個任務囉！` });
+        }
+        
+        const pointsDiff = isCompleting ? 1 : -1;
+        const newData = { ...usersData, [currentUser]: { ...user, tasks: newTasks, points: Math.max(0, user.points + pointsDiff) } };
+        setUsersData(newData); updateCloudData(newData);
+      };
+
+      const handleSendDiary = (senderId, targetUid) => {
+        if (!diaryInput.trim()) return;
+        const uid = targetUid || currentUser;
+        if (!uid) return;
+        const newMessage = { id: Date.now().toString(), sender: senderId, text: diaryInput.trim(), timestamp: Date.now() };
+        const currentDiary = usersData[uid]?.diary || [];
+        const newData = { ...usersData, [uid]: { ...usersData[uid], diary: [...currentDiary, newMessage] } };
+        setUsersData(newData); updateCloudData(newData); setDiaryInput('');
+        setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100);
+      };
+
+      const handleAddPersonalTask = () => {
+        if (!newTaskForm.title.trim()) return alertTip('請輸入任務名稱');
+        const newTask = { id: `pt_${Date.now()}`, title: newTaskForm.title.trim(), freqType: newTaskForm.freqType, createdAt: Date.now() };
+        if (newTaskForm.freqType === 'interval') newTask.freqValue = parseInt(newTaskForm.freqValue) || 2;
+        if (newTaskForm.freqType === 'weekly') {
+          if (newTaskForm.freqWeekly.length === 0) return alertTip('請至少勾選一天');
+          newTask.freqValue = newTaskForm.freqWeekly;
+        }
+        const uid = adminTargetPlayer;
+        const newPersonalTasks = [...usersData[uid].personalTasks, newTask];
+        const newActiveTasks = [...usersData[uid].tasks];
+        if (shouldTaskAppear(newTask, new Date())) newActiveTasks.push({ id: newTask.id, title: newTask.title, completed: false });
+        const newData = { ...usersData, [uid]: { ...usersData[uid], personalTasks: newPersonalTasks, tasks: newActiveTasks } };
+        setUsersData(newData); updateCloudData(newData);
+        setNewTaskForm({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] }); alertTip('✅ 新任務已加入！');
+      };
+
+      const handleDeletePersonalTask = (uid, taskId) => {
+        setConfirmDialog({
+          message: '確定要刪除這個任務嗎？',
+          onConfirm: () => {
+            const newData = { ...usersData };
+            newData[uid].personalTasks = newData[uid].personalTasks.filter(t => t.id !== taskId);
+            newData[uid].tasks = newData[uid].tasks.filter(t => t.id !== taskId);
+            setUsersData(newData); updateCloudData(newData); setConfirmDialog(null); alertTip('🗑️ 任務已刪除');
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
+      const moveTask = (taskId, direction) => {
+        const newData = { ...usersData };
+        ['player1', 'player2'].forEach(uid => {
+          const tasks = [...newData[uid].tasks];
+          const idx = tasks.findIndex(t => t.id === taskId);
+          if (idx < 0) return;
+          if (direction === 'up' && idx > 0) [tasks[idx - 1], tasks[idx]] = [tasks[idx], tasks[idx - 1]];
+          else if (direction === 'down' && idx < tasks.length - 1) [tasks[idx + 1], tasks[idx]] = [tasks[idx], tasks[idx + 1]];
+          newData[uid].tasks = tasks;
+        });
+        setUsersData(newData); updateCloudData(newData);
+      };
+
+      const toggleZhuyin = () => {
+        const newData = { ...usersData, settings: { ...usersData.settings, useZhuyin: !usersData.settings.useZhuyin } };
+        setUsersData(newData); updateCloudData(newData);
+      };
+
+      const fontClass = usersData?.settings?.useZhuyin ? 'zhuyin-font' : 'pixel-font';
+
+      const TopBar = () => (
+        <div className="absolute top-2 left-2 md:top-4 md:left-4 flex items-center gap-3 z-10 pixel-font">
+          <span className="text-xs text-gray-500 font-bold hidden md:inline">{SYSTEM_VERSION}</span>
+          <button onClick={() => setShowChangelog(true)} className="text-xs text-blue-400 hover:text-blue-300 underline">[更新日記]</button>
+          {usersData && (
+            <button onClick={toggleZhuyin} className="text-xs bg-yellow-600 text-white px-2 py-1 rounded border border-yellow-800 hover:bg-yellow-500 active:scale-95 shadow-sm font-sans font-bold">
+              {usersData.settings?.useZhuyin ? '切換一般字' : '切換注音 ㄅ'}
+            </button>
+          )}
+        </div>
+      );
+
+      const renderDiaryChat = (uid, isAdmin) => {
+        const msgs = usersData[uid]?.diary || [];
+        return (
+          <div className="flex flex-col h-full bg-gray-900 border-2 border-gray-600 p-2 relative">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-4 flex flex-col">
+              {msgs.length === 0 && <p className="text-gray-500 text-center text-sm mt-10">目前還沒有留言喔，寫點東西吧！</p>}
+              {msgs.map(m => {
+                const isMe = isAdmin ? m.sender === 'admin' : m.sender !== 'admin';
+                return (
+                  <div key={m.id} className={isMe ? 'chat-bubble-player' : 'chat-bubble-admin'}>
+                    <div className="text-[10px] md:text-xs text-gray-300 mb-1 opacity-75 pixel-font">
+                      {m.sender === 'admin' ? '👑 村長' : usersData[uid].name} • {new Date(m.timestamp).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}
+                    </div>
+                    <div className="text-sm md:text-base leading-relaxed whitespace-pre-wrap font-bold">{m.text}</div>
+                  </div>
+                )
+              })}
+              <div ref={diaryEndRef} className="h-1" />
+            </div>
+            <div className="mt-3 flex gap-2 shrink-0 bg-gray-800 p-2 rounded">
+              <input type="text" value={diaryInput} onChange={e => setDiaryInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendDiary(isAdmin ? 'admin' : uid, uid)} placeholder="點這裡打字..." className="flex-1 bg-black border border-gray-500 px-3 py-2 text-white outline-none text-sm md:text-base" />
+              <button onClick={() => handleSendDiary(isAdmin ? 'admin' : uid, uid)} className="pixel-btn bg-blue-700 px-4 py-2 font-bold shrink-0">送出</button>
+            </div>
+          </div>
+        );
+      };
+
+      if (loading) return <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 pixel-font text-white"><div className="text-4xl animate-bounce mb-4">👾</div><p>連線到村莊中...</p></div>;
+
+      if (targetLogin) {
+        return (
+          <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 select-none relative">
+            <TopBar />
+            {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded ${fontClass} border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
+            <div className={`pixel-box p-6 w-[90%] max-w-sm text-center ${fontClass}`}>
+              <h2 className="text-xl mb-4 text-yellow-300 font-bold">輸入解鎖密碼</h2>
+              <p className="mb-6 text-gray-400 text-sm">登入：{targetLogin === 'admin' ? '村長(管理員)' : usersData[targetLogin].name}</p>
+              <div className="text-3xl tracking-widest mb-8 h-10 text-green-400 font-bold bg-black/50 p-2 border border-gray-600 rounded">{pinInput.padEnd(4, ' _').split(' ').join('')}</div>
+              <div className="grid grid-cols-3 gap-3 md:gap-4 mb-2 pixel-font">
+                {[1,2,3,4,5,6,7,8,9].map(num => <button key={num} onClick={() => handleNumClick(num.toString())} className="pixel-btn bg-gray-700 py-3 text-xl font-bold rounded-sm">{num}</button>)}
+                <button onClick={() => { setTargetLogin(null); setPinInput(''); }} className="pixel-btn bg-red-600 py-3 font-bold text-sm">取消</button>
+                <button onClick={() => handleNumClick('0')} className="pixel-btn bg-gray-700 py-3 text-xl font-bold">0</button>
+                <button onClick={() => setPinInput(prev => prev.slice(0, -1))} className="pixel-btn bg-yellow-600 py-3 font-bold text-sm text-black">退格</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (view === 'login') {
+        return (
+          <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 relative">
+            <TopBar />
+            {showChangelog && (
+              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 ${fontClass}`}>
+                <div className="pixel-box p-5 w-full max-w-md max-h-[80vh] flex flex-col">
+                  <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2"><h2 className="text-xl text-yellow-300 font-bold">📜 更新日誌</h2><button onClick={() => setShowChangelog(false)} className="text-gray-400 text-xl px-2">✕</button></div>
+                  <div className="overflow-y-auto custom-scrollbar pr-2 flex-1 space-y-6">
+                    {(usersData?.changelog || INITIAL_CHANGELOG).map((log, idx) => (
+                      <div key={idx} className="border-l-4 border-blue-500 pl-3"><div className="flex items-baseline gap-3 mb-2"><h3 className="text-lg font-bold text-blue-300 pixel-font">{log.version}</h3><span className="text-xs text-gray-400 pixel-font">{log.date}</span></div><ul className="space-y-1">{log.changes.map((c, cIdx) => <li key={cIdx} className="text-sm text-gray-300">{c}</li>)}</ul></div>
+                    ))}
+                  </div>
+                  <button onClick={() => setShowChangelog(false)} className="pixel-btn bg-blue-700 w-full mt-4 py-2 font-bold">關閉</button>
+                </div>
+              </div>
+            )}
+            <div className="absolute top-2 right-2 md:top-4 md:right-4 flex items-center gap-2 text-xs md:text-sm text-green-400 bg-black/50 px-3 py-1 rounded-full border border-green-900 pixel-font">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> 雲端已連線
+            </div>
+            <div className={`text-center mb-10 mt-8 ${fontClass}`}><h1 className="text-4xl md:text-5xl lg:text-6xl text-yellow-400 mb-4 font-bold" style={{textShadow: '3px 3px 0 #c2410c'}}>勇者日常挑戰</h1></div>
+            <div className={`space-y-4 w-[90%] max-w-sm ${fontClass}`}>
+              {['player1', 'player2'].map(uid => (
+                <button key={uid} onClick={() => setTargetLogin(uid)} className="pixel-btn bg-blue-600 w-full py-4 text-xl flex items-center justify-center gap-3 hover:bg-blue-500 font-bold">
+                  <span className="font-sans font-bold bg-white text-blue-800 px-2 py-1 rounded text-sm shrink-0 shadow-inner">{uid === 'player1' ? 'Oscar' : 'Roy'}</span> <span className="truncate">{usersData[uid].name}</span> 
+                </button>
+              ))}
+              <div className="pt-8 mt-8 border-t border-gray-700 pixel-font">
+                <button onClick={() => setTargetLogin('admin')} className="pixel-btn bg-gray-700 w-full py-3 text-sm flex items-center justify-center gap-2 hover:bg-gray-600 text-gray-300 font-bold"><span>⚙️</span> 村長辦公室</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (view === 'admin') {
+        return (
+          <div className="min-h-screen bg-gray-900 text-white p-2 md:p-4 relative flex flex-col">
+            <TopBar />
+            {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded ${fontClass} border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
+            {confirmDialog && (
+              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 ${fontClass}`}>
+                <div className="pixel-box p-6 w-[95%] max-w-sm text-center">
+                  <p className="mb-6 text-base whitespace-pre-line leading-relaxed font-bold">{confirmDialog.message}</p>
+                  <div className="flex justify-center gap-4">
+                    <button onClick={confirmDialog.onConfirm} className="pixel-btn bg-green-600 px-6 py-2 font-bold">確定</button>
+                    <button onClick={confirmDialog.onCancel} className="pixel-btn bg-gray-600 px-6 py-2 font-bold">取消</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className={`w-full max-w-5xl mx-auto flex-1 flex flex-col pt-8 md:pt-6 ${fontClass}`}>
+              <div className="flex justify-between items-center mb-4 bg-gray-800 p-4 border-[3px] border-white shrink-0">
+                <h2 className="text-xl md:text-2xl text-yellow-300 font-bold flex items-center gap-2"><span>👑</span>村長辦公室</h2>
+                <button onClick={() => setView('login')} className="pixel-btn bg-red-600 px-3 py-2 text-sm font-bold">回首頁</button>
+              </div>
+              <div className="flex overflow-x-auto gap-2 mb-4 shrink-0 custom-scrollbar pb-2 pixel-font">
+                {[{ id: 'overview', icon: '📊', label: '總覽與報表' }, { id: 'tasks', icon: '📝', label: '任務管理' }, { id: 'diary', icon: '📓', label: '勇者信箱' }, { id: 'settings', icon: '⚙️', label: '設定' }].map(tab => (
+                  <button key={tab.id} onClick={() => setAdminTab(tab.id)} className={`pixel-btn px-4 py-2 text-sm font-bold whitespace-nowrap ${adminTab === tab.id ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                    {tab.icon} {tab.label}
+                  </button>
+                ))}
+              </div>
+              <div className="pixel-box p-3 md:p-5 flex-1 overflow-y-auto custom-scrollbar flex flex-col relative">
+                
+                {adminTab === 'overview' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 gap-4">
+                      <button onClick={resetDay} className="pixel-btn bg-purple-700 p-6 flex flex-col items-center gap-2 hover:bg-purple-600"><span className="text-3xl">📅</span><span className="font-bold">結算並蓋上日曆章</span><span className="text-xs text-purple-300 pixel-font">(產生明天任務)</span></button>
+                    </div>
+                    <div>
+                      <h3 className="text-lg text-blue-300 mb-2 font-bold">今日任務全覽</h3>
+                      <div className="overflow-x-auto bg-gray-900 border border-gray-600 p-2">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                          <thead><tr className="border-b border-gray-600"><th className="p-2 font-bold text-yellow-400 w-1/2">{usersData.player1.name} ({usersData.player1.tasks.filter(t=>t.completed).length}/{usersData.player1.tasks.length})</th><th className="p-2 font-bold text-yellow-400 w-1/2 border-l border-gray-700">{usersData.player2.name} ({usersData.player2.tasks.filter(t=>t.completed).length}/{usersData.player2.tasks.length})</th></tr></thead>
+                          <tbody>
+                            <tr>
+                              <td className="p-2 align-top font-bold">{usersData.player1.tasks.map(t => <div key={t.id} className="mb-1 truncate">{t.completed ? '✅' : '❌'} {t.title}</div>)}</td>
+                              <td className="p-2 align-top border-l border-gray-700 font-bold">{usersData.player2.tasks.map(t => <div key={t.id} className="mb-1 truncate">{t.completed ? '✅' : '❌'} {t.title}</div>)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {adminTab === 'tasks' && (
+                  <div className="flex flex-col h-full space-y-4">
+                    <div className="flex gap-2 bg-gray-900 p-2 border border-gray-600 shrink-0">
+                      <button onClick={() => setAdminTargetPlayer('player1')} className={`pixel-btn flex-1 py-2 font-bold text-sm ${adminTargetPlayer === 'player1' ? 'bg-indigo-600' : 'bg-gray-700'}`}>{usersData.player1.name}</button>
+                      <button onClick={() => setAdminTargetPlayer('player2')} className={`pixel-btn flex-1 py-2 font-bold text-sm ${adminTargetPlayer === 'player2' ? 'bg-indigo-600' : 'bg-gray-700'}`}>{usersData.player2.name}</button>
+                    </div>
+                    <div className="bg-gray-900 p-4 border border-gray-600 shrink-0">
+                      <h3 className="text-yellow-300 font-bold mb-3">➕ 新增專屬任務</h3>
+                      <div className="flex flex-col md:flex-row gap-3">
+                        <input type="text" placeholder="任務名稱" value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm, title: e.target.value})} className="flex-1 bg-black border border-gray-500 p-2 text-white outline-none text-sm font-bold" />
+                        <div className="flex gap-2">
+                          <select value={newTaskForm.freqType} onChange={e=>setNewTaskForm({...newTaskForm, freqType: e.target.value})} className="bg-black border border-gray-500 p-2 text-white outline-none text-sm pixel-font cursor-pointer font-bold">
+                            <option value="daily">每天</option><option value="interval">間隔天數</option><option value="weekly">每週特定</option><option value="once">只有一次</option>
+                          </select>
+                          {newTaskForm.freqType === 'interval' && <div className="flex items-center gap-1 bg-black border border-gray-500 px-2"><input type="number" min="1" value={newTaskForm.freqValue} onChange={e=>setNewTaskForm({...newTaskForm, freqValue: e.target.value})} className="w-10 bg-transparent text-green-400 text-center outline-none pixel-font font-bold" /><span className="font-bold text-sm">天一次</span></div>}
+                        </div>
+                      </div>
+                      {newTaskForm.freqType === 'weekly' && (
+                        <div className="flex gap-2 mt-3 flex-wrap">
+                          {['日','一','二','三','四','五','六'].map((day, idx) => (
+                            <label key={idx} className="flex items-center gap-1 bg-gray-800 px-2 py-1 border border-gray-600 cursor-pointer select-none text-sm font-bold">
+                              <input type="checkbox" checked={newTaskForm.freqWeekly.includes(idx)} onChange={(e) => { const newWeekly = e.target.checked ? [...newTaskForm.freqWeekly, idx] : newTaskForm.freqWeekly.filter(v => v !== idx); setNewTaskForm({...newTaskForm, freqWeekly: newWeekly}); }} className="accent-blue-500 w-4 h-4" /> {day}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={handleAddPersonalTask} className="pixel-btn bg-green-700 w-full mt-3 py-2 font-bold text-sm">確認加入</button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar border border-gray-600 p-2 bg-gray-900">
+                      {usersData[adminTargetPlayer].personalTasks.map((t, idx) => {
+                        let freqLabel = '每天'; if (t.freqType === 'once') freqLabel = '一次'; if (t.freqType === 'interval') freqLabel = `${t.freqValue}天一次`; if (t.freqType === 'weekly') freqLabel = '週' + t.freqValue.map(v => ['日','一','二','三','四','五','六'][v]).join(',');
+                        return (
+                          <div key={t.id} className="flex justify-between items-center bg-gray-800 p-2 mb-2 border border-gray-600">
+                            <div className="flex flex-col flex-1 truncate mr-2"><span className="font-bold text-sm">{idx + 1}. {t.title}</span><span className="text-xs text-gray-400 font-bold">🕒 頻率: {freqLabel}</span></div>
+                            <button onClick={()=>handleDeletePersonalTask(adminTargetPlayer, t.id)} className="pixel-btn bg-red-800 px-3 py-1 text-xs shrink-0 pixel-font">刪除</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {adminTab === 'diary' && (
+                  <div className="flex flex-col h-full space-y-4">
+                    <div className="flex gap-2 bg-gray-900 p-2 border border-gray-600 shrink-0">
+                      <button onClick={() => setAdminTargetPlayer('player1')} className={`pixel-btn flex-1 py-2 font-bold text-sm ${adminTargetPlayer === 'player1' ? 'bg-green-700' : 'bg-gray-700'}`}>💌 {usersData.player1.name}</button>
+                      <button onClick={() => setAdminTargetPlayer('player2')} className={`pixel-btn flex-1 py-2 font-bold text-sm ${adminTargetPlayer === 'player2' ? 'bg-green-700' : 'bg-gray-700'}`}>💌 {usersData.player2.name}</button>
+                    </div>
+                    <div className="flex-1 min-h-[350px]">
+                      {renderDiaryChat(adminTargetPlayer, true)}
+                    </div>
+                  </div>
+                )}
+
+                {adminTab === 'settings' && (
+                  <div className="space-y-6">
+                    <div className="bg-gray-900 p-4 border border-gray-700">
+                      <div className="text-red-400 mb-3 font-bold">👑 村長帳號設定</div>
+                      <div className="flex items-end gap-3"><div className="flex-1"><label className="block text-gray-400 mb-1 text-sm font-bold">修改 4 位數密碼：</label><input type="text" maxLength={4} value={editAdminPin} onChange={(e) => setEditAdminPin(e.target.value.replace(/\D/g,''))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none pixel-font font-bold" /></div><button onClick={saveAdminPin} className="pixel-btn bg-red-800 px-4 py-2 font-bold shrink-0">儲存</button></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {['player1', 'player2'].map(uid => (
+                        <div key={uid} className="bg-gray-900 p-4 border border-gray-700">
+                          <div className="text-yellow-400 mb-3 font-bold">{uid === 'player1' ? 'Oscar' : 'Roy'} 設定</div>
+                          <div className="space-y-3">
+                            <div><label className="block text-gray-400 mb-1 text-sm font-bold">顯示名稱：</label><input type="text" value={editSettings[uid].name} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], name: e.target.value }}))} className="w-full bg-black border border-gray-500 p-2 text-white outline-none font-bold" /></div>
+                            <div><label className="block text-gray-400 mb-1 text-sm font-bold">4位數密碼：</label><input type="text" maxLength={4} value={editSettings[uid].pin} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], pin: e.target.value.replace(/\D/g,'') }}))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none pixel-font font-bold" /></div>
+                            <button onClick={() => saveUserSettings(uid)} className="pixel-btn bg-blue-700 w-full py-2 font-bold text-sm">更新資料</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // 4. 遊戲畫面
+      const user = usersData[currentUser];
+      const totalCount = user.tasks.length;
+      const completedCount = user.tasks.filter(t => t.completed).length;
+      const progressPercent = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+      const avatarText = currentUser === 'player1' ? 'Oscar' : 'Roy';
+      const hasNewMsg = user.diary.length > 0 && user.diary[user.diary.length-1].sender === 'admin';
+
+      return (
+        <div className="min-h-screen bg-gray-900 text-white relative flex flex-col">
+          <TopBar />
+          {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded ${fontClass} border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
+          
+          {showCalendar && (
+            <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 ${fontClass}`}>
+              <div className="pixel-box p-4 md:p-6 w-full max-w-md flex flex-col max-h-[90vh]">
+                <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2 shrink-0"><h2 className="text-xl text-yellow-300 font-bold">📅 我的打卡日曆</h2><button onClick={() => {setShowCalendar(false); setCalMonthOffset(0);}} className="text-gray-400 text-xl px-2">✕</button></div>
+                <div className="w-full">
+                  <div className="flex justify-between items-center mb-4 px-2">
+                    <button onClick={() => setCalMonthOffset(p => p - 1)} className="pixel-btn bg-gray-700 px-3 py-1 font-bold">◀</button>
+                    <span className="text-xl text-yellow-300 font-bold tracking-widest pixel-font">{new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getFullYear()} / {String(new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getMonth() + 1).padStart(2, '0')}</span>
+                    <button onClick={() => setCalMonthOffset(p => p + 1)} className="pixel-btn bg-gray-700 px-3 py-1 font-bold">▶</button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 text-center mb-2 font-bold text-gray-400"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+                  <div className="grid grid-cols-7 gap-1 md:gap-2 text-center text-sm md:text-base">
+                    {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + calMonthOffset, 1).getDay() }).map((_, i) => <div key={`b-${i}`} className="p-2"></div>)}
+                    {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + calMonthOffset + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
+                      const targetYear = new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getFullYear();
+                      const targetMonth = String(new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getMonth() + 1).padStart(2, '0');
+                      const dStr = `${targetYear}-${targetMonth}-${String(d).padStart(2,'0')}`;
+                      let record = user.dailyRecords[dStr];
+                      if (dStr === TODAY_STR) { if (completedCount > 0 || record) record = { c: completedCount, t: totalCount }; }
+                      let stamp = ''; let bgClass = 'bg-gray-800 border-gray-700'; 
+                      if (record && record.c > 0) {
+                        const ratio = record.c / record.t;
+                        if (ratio === 1) { stamp = '🌟'; bgClass = 'bg-yellow-900/40 border-yellow-500/50'; } 
+                        else if (ratio >= 0.5) { stamp = '🟢'; bgClass = 'bg-green-900/40 border-green-500/50'; } 
+                        else { stamp = '⭕'; bgClass = 'bg-orange-900/40 border-orange-500/50'; }
+                      } else if (dStr === TODAY_STR) bgClass = 'bg-blue-900/40 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]';
+                      return (<div key={d} className={`flex flex-col items-center justify-center border p-1 rounded-sm aspect-square relative ${bgClass}`}><span className="text-[10px] md:text-xs text-gray-300 absolute top-1 left-1 pixel-font">{d}</span><span className="text-xl md:text-2xl mt-3">{stamp}</span></div>);
+                    })}
+                  </div>
+                </div>
+                <button onClick={() => {setShowCalendar(false); setCalMonthOffset(0);}} className="pixel-btn bg-gray-700 w-full mt-6 py-2 font-bold shrink-0">返回任務</button>
+              </div>
+            </div>
+          )}
+
+          {showDiary && (
+            <div className={`fixed inset-0 bg-black/90 z-[100] flex flex-col ${fontClass}`}>
+              <div className="flex justify-between items-center p-3 md:p-4 bg-gray-900 border-b-4 border-gray-600 shrink-0">
+                <h2 className="text-xl text-yellow-300 font-bold">📓 寫給村長的交換日記</h2>
+                <button onClick={() => setShowDiary(false)} className="text-gray-400 text-3xl font-bold px-2">✕</button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                {renderDiaryChat(currentUser, false)}
+              </div>
+            </div>
+          )}
+
+          {celebration.show && (
+            <div onClick={() => setCelebration(prev => ({ ...prev, show: false }))} className={`fixed inset-0 bg-black/70 flex items-center justify-center z-[110] p-4 ${fontClass} backdrop-blur-sm cursor-pointer`}>
+              <div className="relative overflow-hidden pixel-box p-6 md:p-10 w-[90%] max-w-md text-center celebrate-pop border-yellow-400 bg-gray-800 shadow-[0_0_40px_rgba(253,224,71,0.3)]">
+                <div className="spin-glow"></div>
+                <div className="relative z-10">
+                  {celebration.type === 'perfect' && <div className="text-6xl mb-4 animate-bounce">🌟🌟🌟</div>}
+                  {celebration.type === 'countdown' && <div className="text-6xl mb-4 animate-bounce">🔥🏃</div>}
+                  {celebration.type === 'milestone' && <div className="text-6xl mb-4 animate-bounce">✨🎉</div>}
+                  <h2 className="text-2xl md:text-3xl text-yellow-300 mb-4 font-bold" style={{textShadow: '2px 2px 0 #000'}}>{celebration.title}</h2>
+                  <p className="text-lg md:text-xl text-white font-bold leading-relaxed">{celebration.message}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className={`w-full max-w-4xl mx-auto flex-1 flex flex-col p-2 md:p-6 pt-10 md:pt-4 pb-24 md:pb-28 ${fontClass}`}>
+            <div className="pixel-box p-3 md:p-5 mb-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-gray-800 shrink-0">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="w-14 h-14 bg-blue-900 border-2 border-white flex items-center justify-center font-sans font-bold text-lg md:text-xl shrink-0 shadow-inner pixel-font">{avatarText}</div>
+                <div className="flex-1"><h2 className="text-lg md:text-xl text-yellow-300 font-bold">{user.name}</h2><p className="text-xs text-gray-300 pixel-font">Lv.{Math.floor(user.points / 10) + 1} | 總累積: {user.points} EXP</p></div>
+              </div>
+              <div className="flex gap-2 shrink-0 self-end sm:self-auto">
+                <button onClick={() => {setCurrentUser(null); setView('login');}} className="pixel-btn bg-red-600 px-3 py-2 active:bg-red-500 font-bold text-sm">登出</button>
+              </div>
+            </div>
+
+            <div className="pixel-box p-3 md:p-5 bg-gray-800 flex flex-col flex-1">
+              <h3 className="text-base md:text-lg text-blue-300 mb-4 border-b border-gray-600 pb-2 flex justify-between items-end shrink-0 font-bold">
+                <span>🎴 每日任務卡片牆</span>
+                <span className="text-xs text-gray-400 font-normal hidden sm:inline font-bold">點擊卡片完成 +1 EXP</span>
+              </h3>
+              
+              {totalCount === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-gray-500 font-bold text-lg">今天沒有任務喔！太棒了！</div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 flex-1 items-start content-start overflow-y-auto custom-scrollbar pr-1 pb-4">
+                  {user.tasks.map(task => (
+                    <div key={task.id} onClick={() => toggleTask(task.id)} className={`relative cursor-pointer border-[3px] p-2 flex flex-col items-center justify-center transition-all duration-200 min-h-[90px] md:min-h-[110px] rounded-lg select-none overflow-hidden ${task.completed ? 'border-green-500 bg-green-900/30 scale-95 opacity-80 shadow-inner' : 'border-gray-500 bg-gray-700 hover:bg-gray-600 shadow-[0_4px_0_rgb(107,114,128)] active:shadow-none active:translate-y-1'}`}>
+                      {task.completed && <div className="absolute inset-0 flex items-center justify-center card-check-anim pointer-events-none"><span className="text-[60px] md:text-[80px] text-green-500 pixel-font">✓</span></div>}
+                      <span className={`relative z-10 text-[15px] md:text-[17px] font-bold text-center leading-snug px-1 ${task.completed ? 'text-gray-400 line-through' : 'text-white'}`}>{task.title}</span>
+                      {animatingTask === task.id && <div className="exp-float font-bold text-sm pixel-font">+1 EXP</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={`fixed bottom-0 left-0 w-full bg-gray-900 border-t-4 border-gray-600 p-2 md:p-4 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.7)] ${fontClass}`}>
+            <div className="max-w-4xl mx-auto flex flex-col gap-2">
+              <div className="flex justify-between items-end">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setShowDiary(true)} className="pixel-btn bg-indigo-700 px-3 py-2 flex items-center gap-1 active:bg-indigo-600 font-bold text-xs md:text-sm relative">
+                    <span className="text-base md:text-lg">📓</span> 交換日記
+                    {hasNewMsg && <span className="absolute -top-1 -right-1 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-gray-900"></span></span>}
+                  </button>
+                  <button onClick={() => setShowCalendar(true)} className="pixel-btn bg-green-700 px-3 py-2 flex items-center gap-1 active:bg-green-600 font-bold text-xs md:text-sm">
+                    <span className="text-base md:text-lg">📅</span> 打卡日曆
+                  </button>
+                </div>
+                <div className="text-right">
+                  <div className="text-yellow-300 font-bold text-xs md:text-sm mb-1 pixel-font tracking-widest">{currentTime.toLocaleDateString('zh-TW')} {currentTime.toLocaleTimeString('zh-TW', { hour12: false })}</div>
+                  <div className="text-blue-300 bg-blue-900/50 px-2 py-1 rounded text-xs md:text-sm font-bold inline-block pixel-font">完成：{completedCount} / {totalCount} ({progressPercent}%)</div>
+                </div>
+              </div>
+              <div className="w-full h-3 md:h-4 border-2 border-white bg-black rounded-sm overflow-hidden relative">
+                <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
+
+
