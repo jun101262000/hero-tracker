@@ -5,13 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>勇者日常挑戰</title>
   
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
   <!-- Firebase (使用瀏覽器相容版本) -->
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-auth-compat.js"></script>
@@ -40,28 +38,37 @@
   </style>
 </head>
 <body class="pixel-font">
+  
+  <!-- 最底層的語法錯誤捕捉 -->
+  <div id="syntax-error" style="display:none; background:red; color:white; padding:20px; font-weight:bold; position:fixed; top:0; left:0; width:100%; z-index:9999;"></div>
+  <script>
+    window.onerror = function(message) {
+      document.getElementById('syntax-error').style.display = 'block';
+      document.getElementById('syntax-error').innerHTML = '🚨 網頁語法錯誤：' + message;
+    };
+  </script>
+
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // 👇👇👇 請將下面這段換成您的 Firebase Config 👇👇👇
+    // 您的 Firebase 設定
     const firebaseConfig = {
-      apiKey: "請貼上您的",
-      authDomain: "請貼上您的",
-      projectId: "請貼上您的",
-      storageBucket: "請貼上您的",
-      messagingSenderId: "請貼上您的",
-      appId: "請貼上您的"
+      apiKey: "AIzaSyDQnmb2kFxQyrm_XTT1BSJOnlsILZR_puY",
+      authDomain: "herotracker-55dae.firebaseapp.com",
+      projectId: "herotracker-55dae",
+      storageBucket: "herotracker-55dae.firebasestorage.app",
+      messagingSenderId: "548324823192",
+      appId: "1:548324823192:web:fe957568df8fe708e880ed"
     };
-    // 👆👆👆 替換結束 👆👆👆
 
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const appId = 'my-hero-tracker-family-app';
+    const appId = 'my-hero-tracker-family-app'; // 使用共用集合名稱
 
     const SYSTEM_VERSION = `v.${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}`;
     const TODAY_STR = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
@@ -85,7 +92,7 @@
     const DEFAULT_USERS_DATA = {
       player1: { name: '勇者 Oscar', pin: '6767', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }] },
       player2: { name: '勇者 Roy', pin: '1367', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }] },
-      changelog: [{ date: '最新更新', version: 'v.20260821', changes: ['⚡ 跨裝置即時連線升級：修復交換日記無法即時收到的問題！現在所有裝置 100% 同步！','🛠️ 啟用了家庭共用大廳架構。']}], adminPin: '9999'
+      changelog: [{ date: '最新更新', version: 'v.20260822', changes: ['🛡️ 加入終極除錯系統，精準定位連線問題。','✅ 強制套用跨裝置同步架構。']}], adminPin: '9999'
     };
 
     function App() {
@@ -97,6 +104,8 @@
       const [targetLogin, setTargetLogin] = useState(null);
       const [animatingTask, setAnimatingTask] = useState(null);
       const [loading, setLoading] = useState(true);
+      const [fatalError, setFatalError] = useState(null); // 終極錯誤紀錄
+      
       const [currentTime, setCurrentTime] = useState(new Date());
       const [showCalendar, setShowCalendar] = useState(false);
       const [showDiary, setShowDiary] = useState(false);
@@ -120,17 +129,30 @@
         return () => clearInterval(timer);
       }, []);
 
+      // 檢查 Authentication
       useEffect(() => {
-        auth.signInAnonymously().catch(e => console.error(e));
-        const unsubscribe = auth.onAuthStateChanged(setUserAuth);
+        auth.signInAnonymously().catch(e => {
+          console.error("Auth Error:", e);
+          setFatalError(`【驗證登入失敗】\n代碼: ${e.code}\n訊息: ${e.message}\n👉 可能是「匿名登入 (Anonymous)」沒有成功開啟，請回 Firebase 檢查。`);
+          setLoading(false);
+        });
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          if (user) {
+            setUserAuth(user);
+          } else {
+             // 避免登出後卡住
+             auth.signInAnonymously().catch(e=>console.log(e));
+          }
+        });
         return () => unsubscribe();
       }, []);
 
-      // 【核心修復點】：將資料存放路徑改為家庭共用的公開區域，實現跨裝置完美同步
+      // 獲取共用資料庫參考點
       const getSharedDataRef = () => {
         return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('family_gamedata').doc('main');
       };
 
+      // 檢查 Firestore
       useEffect(() => {
         if (!userAuth) return;
         const sharedDataRef = getSharedDataRef();
@@ -148,12 +170,12 @@
               if (!data.adminPin) { data.adminPin = '9999'; needsPatch = true; }
               if (!data.player1.diary) { data.player1.diary = []; needsPatch = true; }
               if (!data.player2.diary) { data.player2.diary = []; needsPatch = true; }
-
               if (needsPatch) await sharedDataRef.update(data);
             }
           } catch(e) {
-            console.error(e);
-            alertTip("資料庫連線異常，請確認 Firebase 設定。");
+            console.error("Firestore Error:", e);
+            setFatalError(`【資料庫讀取失敗】\n代碼: ${e.code}\n訊息: ${e.message}\n👉 請確定 Firestore Rules 裡面的 false 已經改成了 true！`);
+            setLoading(false);
           }
         };
         setupData();
@@ -168,6 +190,10 @@
             }
             setLoading(false);
           }
+        }, error => {
+          console.error("Snapshot Error:", error);
+          setFatalError(`【資料庫監聽被拒】\n代碼: ${error.code}\n👉 請確定 Firestore Rules 是 allow read, write: if true;`);
+          setLoading(false);
         });
         return () => unsubscribe();
       }, [userAuth]);
@@ -175,14 +201,16 @@
       const updateCloudData = async (newData) => {
         if (!userAuth) return;
         const sharedDataRef = getSharedDataRef();
-        await sharedDataRef.update(newData);
+        try {
+          await sharedDataRef.update(newData);
+        } catch (e) {
+           console.error("Update Error:", e);
+           alertTip(`存檔失敗：${e.message}`);
+        }
       };
 
-      // 監聽有新訊息時，自動滾動到底部
       useEffect(() => {
-        if (showDiary || adminTab === 'diary') {
-          setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 150);
-        }
+        if (showDiary || adminTab === 'diary') setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 150);
       }, [showDiary, adminTab, adminTargetPlayer, usersData?.player1?.diary, usersData?.player2?.diary]);
 
       useEffect(() => {
@@ -371,7 +399,42 @@
         );
       };
 
-      if (loading) return <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 text-white"><div className="text-4xl animate-bounce mb-4">👾</div><p>連線到村莊中...</p></div>;
+      // 🚨 終極錯誤防護畫面：如果 Firebase 阻擋，會直接印出紅字告訴您怎麼修
+      if (fatalError) {
+        return (
+          <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-6 text-white">
+            <div className="bg-red-900 border-4 border-red-500 p-6 max-w-lg w-full pixel-box shadow-[0_0_50px_rgba(239,68,68,0.5)]">
+              <h2 className="text-2xl text-yellow-300 font-bold mb-4 flex items-center gap-2"><span className="text-3xl">🚨</span> 連線遭到阻擋</h2>
+              <div className="bg-black/80 p-4 border border-red-400 text-red-300 text-sm md:text-base font-bold whitespace-pre-line mb-6 font-mono leading-relaxed">
+                {fatalError}
+              </div>
+              <div className="bg-gray-800 p-4 border border-gray-500 text-sm text-gray-300">
+                <p className="font-bold text-white mb-2 text-base">🔧 兩步快速排錯指南：</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>前往 Firebase 控制台，點擊左側 <b>Authentication</b> -> Sign-in method，確定有把<b>「匿名 (Anonymous)」</b>開啟。</li>
+                  <li>點擊左側 <b>Firestore Database</b>，點擊上方 <b>Rules (规则)</b>，把整段刪除，換成：
+                    <pre className="bg-black text-green-400 p-2 mt-1 border border-gray-600 font-mono text-xs overflow-x-auto">
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`}
+                    </pre>
+                  </li>
+                  <li className="text-yellow-400 font-bold mt-2">改完後記得點擊藍色的「发布 (Publish)」按鈕！</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (loading) return <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 text-white"><div className="text-4xl animate-bounce mb-4">👾</div><p className="font-bold tracking-widest text-lg">嘗試進入村莊中...</p></div>;
+
+      if (!usersData) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white"><p>正在準備資料，請稍候...</p></div>;
 
       if (targetLogin) {
         return (
