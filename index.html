@@ -45,7 +45,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // 您專屬的 Firebase 設定（已自動填入）
+    // 您的專屬 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDQnmb2kFxQyrm_XTT1BSJOnlsILZR_puY",
       authDomain: "herotracker-55dae.firebaseapp.com",
@@ -84,7 +84,7 @@
     const DEFAULT_USERS_DATA = {
       player1: { name: '勇者 Oscar', pin: '6767', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }] },
       player2: { name: '勇者 Roy', pin: '1367', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }] },
-      changelog: [{ date: '發布版', version: 'v.1.0', changes: ['🚀 勇者系統正式發布！','🔧 修復了設定畫面崩潰的問題。','🔑 Oscar 密碼更新為 6767，Roy 更新為 1367。']}], adminPin: '9999'
+      changelog: [{ date: '發布版', version: 'v.1.0', changes: ['🚀 修復設定畫面黑屏崩潰問題。','🔑 更新 Oscar 與 Roy 的專屬密碼。']}], adminPin: '9999'
     };
 
     function App() {
@@ -99,17 +99,13 @@
       const [currentTime, setCurrentTime] = useState(new Date());
       const [showCalendar, setShowCalendar] = useState(false);
       const [showDiary, setShowDiary] = useState(false);
-      const [showChangelog, setShowChangelog] = useState(false);
       const [calMonthOffset, setCalMonthOffset] = useState(0); 
       const [celebration, setCelebration] = useState({ show: false, title: '', message: '', type: '' });
       const [adminTab, setAdminTab] = useState('overview'); 
       const [adminTargetPlayer, setAdminTargetPlayer] = useState('player1');
       const [reportModal, setReportModal] = useState(null);
-      
-      // 給予預設值，避免畫面渲染時崩潰黑屏
-      const [editSettings, setEditSettings] = useState({ player1: { name: '勇者 Oscar', pin: '6767' }, player2: { name: '勇者 Roy', pin: '1367' } });
-      const [editAdminPin, setEditAdminPin] = useState('9999');
-      
+      const [editSettings, setEditSettings] = useState({ player1: { name: '', pin: '' }, player2: { name: '', pin: '' } });
+      const [editAdminPin, setEditAdminPin] = useState('');
       const [newTaskForm, setNewTaskForm] = useState({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] });
       const [diaryInput, setDiaryInput] = useState('');
       const diaryEndRef = useRef(null);
@@ -137,11 +133,19 @@
           if (!docSnap.exists) {
             await gameDataRef.set(DEFAULT_USERS_DATA);
           } else {
-            // 如果原本是舊密碼，自動幫忙升級到新密碼
+            // 背景自動修補升級程式，確保舊資料不會導致崩潰，並更新密碼
             const data = docSnap.data();
             let needsPatch = false;
+            
+            // 升級密碼
             if (data.player1 && data.player1.pin === '1111') { data.player1.pin = '6767'; needsPatch = true; }
             if (data.player2 && data.player2.pin === '2222') { data.player2.pin = '1367'; needsPatch = true; }
+            // 確保管理員密碼存在
+            if (!data.adminPin) { data.adminPin = '9999'; needsPatch = true; }
+            // 確保日記存在
+            if (!data.player1.diary) { data.player1.diary = []; needsPatch = true; }
+            if (!data.player2.diary) { data.player2.diary = []; needsPatch = true; }
+
             if (needsPatch) await gameDataRef.update(data);
           }
         };
@@ -311,7 +315,6 @@
       const TopBar = () => (
         <div className="absolute top-2 left-2 md:top-4 md:left-4 flex items-center gap-3 z-10">
           <span className="text-xs text-gray-500 font-bold hidden md:inline">{SYSTEM_VERSION}</span>
-          <button onClick={() => setShowChangelog(true)} className="text-xs text-blue-400 hover:text-blue-300 underline">[更新日記]</button>
         </div>
       );
 
@@ -368,19 +371,6 @@
         return (
           <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 relative">
             <TopBar />
-            {showChangelog && (
-              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4`}>
-                <div className="pixel-box p-5 w-full max-w-md max-h-[80vh] flex flex-col">
-                  <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2"><h2 className="text-xl text-yellow-300 font-bold">📜 更新日誌</h2><button onClick={() => setShowChangelog(false)} className="text-gray-400 text-xl px-2">✕</button></div>
-                  <div className="overflow-y-auto custom-scrollbar pr-2 flex-1 space-y-6">
-                    {(usersData?.changelog || INITIAL_CHANGELOG).map((log, idx) => (
-                      <div key={idx} className="border-l-4 border-blue-500 pl-3"><div className="flex items-baseline gap-3 mb-2"><h3 className="text-lg font-bold text-blue-300">{log.version}</h3><span className="text-xs text-gray-400">{log.date}</span></div><ul className="space-y-1">{log.changes.map((c, cIdx) => <li key={cIdx} className="text-sm text-gray-300">{c}</li>)}</ul></div>
-                    ))}
-                  </div>
-                  <button onClick={() => setShowChangelog(false)} className="pixel-btn bg-blue-700 w-full mt-4 py-2 font-bold">關閉</button>
-                </div>
-              </div>
-            )}
             <div className="absolute top-2 right-2 md:top-4 md:right-4 flex items-center gap-2 text-xs md:text-sm text-green-400 bg-black/50 px-3 py-1 rounded-full border border-green-900">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> 雲端已連線
             </div>
@@ -400,6 +390,22 @@
       }
 
       if (view === 'admin') {
+        // 安全容錯設計：確保儲存資料時不會因為 Undefined 而崩潰
+        const saveUserSettings = (uid) => {
+          const newName = (editSettings?.[uid]?.name || '').trim(); 
+          const newPin = (editSettings?.[uid]?.pin || '').trim();
+          if (!newName || !/^\d{4}$/.test(newPin)) return alertTip('資料格式錯誤！密碼必須是4個數字。');
+          const newData = { ...usersData, [uid]: { ...usersData[uid], name: newName, pin: newPin } };
+          setUsersData(newData); updateCloudData(newData); alertTip(`✅ 資料已更新！`);
+        };
+
+        const saveAdminPin = () => {
+          const newPin = (editAdminPin || '').trim();
+          if (!/^\d{4}$/.test(newPin)) return alertTip('村長密碼必須是 4 位數字！');
+          const newData = { ...usersData, adminPin: newPin };
+          setUsersData(newData); updateCloudData(newData); alertTip(`✅ 密碼已更新！`);
+        };
+
         return (
           <div className="min-h-screen bg-gray-900 text-white p-2 md:p-4 relative flex flex-col">
             <TopBar />
@@ -505,7 +511,7 @@
                   </div>
                 )}
 
-                {/* 🛡️ 修復後的安全設定頁籤 🛡️ */}
+                {/* 🛡️ 加入安全防護的系統設定頁籤 🛡️ */}
                 {adminTab === 'settings' && (
                   <div className="space-y-6">
                     <div className="bg-gray-900 p-4 border border-gray-700">
@@ -525,11 +531,11 @@
                           <div className="space-y-3">
                             <div>
                               <label className="block text-gray-400 mb-1 text-sm font-bold">顯示名稱：</label>
-                              <input type="text" value={editSettings[uid]?.name || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], name: e.target.value }}))} className="w-full bg-black border border-gray-500 p-2 text-white outline-none font-bold" />
+                              <input type="text" value={editSettings?.[uid]?.name || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...(prev[uid] || {}), name: e.target.value }}))} className="w-full bg-black border border-gray-500 p-2 text-white outline-none font-bold" />
                             </div>
                             <div>
                               <label className="block text-gray-400 mb-1 text-sm font-bold">4位數密碼：</label>
-                              <input type="text" maxLength={4} value={editSettings[uid]?.pin || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], pin: e.target.value.replace(/\D/g,'') }}))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" />
+                              <input type="text" maxLength={4} value={editSettings?.[uid]?.pin || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...(prev[uid] || {}), pin: e.target.value.replace(/\D/g,'') }}))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" />
                             </div>
                             <button onClick={() => saveUserSettings(uid)} className="pixel-btn bg-blue-700 w-full py-2 font-bold text-sm">更新資料</button>
                           </div>
