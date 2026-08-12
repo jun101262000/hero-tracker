@@ -12,7 +12,7 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Firebase -->
+  <!-- Firebase (使用瀏覽器相容版本) -->
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
@@ -45,7 +45,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // 用戶專屬 Firebase 設定
+    // 您專屬的 Firebase 設定（已自動填入）
     const firebaseConfig = {
       apiKey: "AIzaSyDQnmb2kFxQyrm_XTT1BSJOnlsILZR_puY",
       authDomain: "herotracker-55dae.firebaseapp.com",
@@ -82,9 +82,9 @@
     const ROY_TASKS = INITIAL_COMMON_TASKS.map(t => ({...t, createdAt: NOW}));
 
     const DEFAULT_USERS_DATA = {
-      player1: { name: '勇者 Oscar', pin: '1111', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }] },
-      player2: { name: '勇者 Roy', pin: '2222', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }] },
-      changelog: [{ date: '發布版', version: 'v.1.0', changes: ['🚀 勇者系統正式發布！','✨ 移除注音字體切換功能，提升網頁載入速度與穩定性。','📓 保留交換日記、專屬任務與打卡日曆等核心功能。']}], adminPin: '9999'
+      player1: { name: '勇者 Oscar', pin: '6767', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }] },
+      player2: { name: '勇者 Roy', pin: '1367', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }] },
+      changelog: [{ date: '發布版', version: 'v.1.0', changes: ['🚀 勇者系統正式發布！','🔧 修復了設定畫面崩潰的問題。','🔑 Oscar 密碼更新為 6767，Roy 更新為 1367。']}], adminPin: '9999'
     };
 
     function App() {
@@ -105,8 +105,11 @@
       const [adminTab, setAdminTab] = useState('overview'); 
       const [adminTargetPlayer, setAdminTargetPlayer] = useState('player1');
       const [reportModal, setReportModal] = useState(null);
-      const [editSettings, setEditSettings] = useState({ player1: { name: '', pin: '' }, player2: { name: '', pin: '' } });
-      const [editAdminPin, setEditAdminPin] = useState('');
+      
+      // 給予預設值，避免畫面渲染時崩潰黑屏
+      const [editSettings, setEditSettings] = useState({ player1: { name: '勇者 Oscar', pin: '6767' }, player2: { name: '勇者 Roy', pin: '1367' } });
+      const [editAdminPin, setEditAdminPin] = useState('9999');
+      
       const [newTaskForm, setNewTaskForm] = useState({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] });
       const [diaryInput, setDiaryInput] = useState('');
       const diaryEndRef = useRef(null);
@@ -133,6 +136,13 @@
           const docSnap = await gameDataRef.get();
           if (!docSnap.exists) {
             await gameDataRef.set(DEFAULT_USERS_DATA);
+          } else {
+            // 如果原本是舊密碼，自動幫忙升級到新密碼
+            const data = docSnap.data();
+            let needsPatch = false;
+            if (data.player1 && data.player1.pin === '1111') { data.player1.pin = '6767'; needsPatch = true; }
+            if (data.player2 && data.player2.pin === '2222') { data.player2.pin = '1367'; needsPatch = true; }
+            if (needsPatch) await gameDataRef.update(data);
           }
         };
         setupData();
@@ -411,7 +421,7 @@
                 <button onClick={() => setView('login')} className="pixel-btn bg-red-600 px-3 py-2 text-sm font-bold">回首頁</button>
               </div>
               <div className="flex overflow-x-auto gap-2 mb-4 shrink-0 custom-scrollbar pb-2">
-                {[{ id: 'overview', icon: '📊', label: '總覽與報表' }, { id: 'tasks', icon: '📝', label: '任務管理' }, { id: 'diary', icon: '📓', label: '勇者信箱' }, { id: 'settings', icon: '⚙️', label: '設定' }].map(tab => (
+                {[{ id: 'overview', icon: '📊', label: '總覽與報表' }, { id: 'tasks', icon: '📝', label: '任務管理' }, { id: 'diary', icon: '📓', label: '勇者信箱' }, { id: 'settings', icon: '⚙️', label: '系統設定' }].map(tab => (
                   <button key={tab.id} onClick={() => setAdminTab(tab.id)} className={`pixel-btn px-4 py-2 text-sm font-bold whitespace-nowrap ${adminTab === tab.id ? 'bg-blue-600' : 'bg-gray-700'}`}>
                     {tab.icon} {tab.label}
                   </button>
@@ -495,19 +505,32 @@
                   </div>
                 )}
 
+                {/* 🛡️ 修復後的安全設定頁籤 🛡️ */}
                 {adminTab === 'settings' && (
                   <div className="space-y-6">
                     <div className="bg-gray-900 p-4 border border-gray-700">
                       <div className="text-red-400 mb-3 font-bold">👑 村長帳號設定</div>
-                      <div className="flex items-end gap-3"><div className="flex-1"><label className="block text-gray-400 mb-1 text-sm font-bold">修改 4 位數密碼：</label><input type="text" maxLength={4} value={editAdminPin} onChange={(e) => setEditAdminPin(e.target.value.replace(/\D/g,''))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" /></div><button onClick={saveAdminPin} className="pixel-btn bg-red-800 px-4 py-2 font-bold shrink-0">儲存</button></div>
+                      <div className="flex items-end gap-3">
+                        <div className="flex-1">
+                          <label className="block text-gray-400 mb-1 text-sm font-bold">修改 4 位數密碼：</label>
+                          <input type="text" maxLength={4} value={editAdminPin || ''} onChange={(e) => setEditAdminPin(e.target.value.replace(/\D/g,''))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" />
+                        </div>
+                        <button onClick={saveAdminPin} className="pixel-btn bg-red-800 px-4 py-2 font-bold shrink-0">儲存</button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {['player1', 'player2'].map(uid => (
                         <div key={uid} className="bg-gray-900 p-4 border border-gray-700">
                           <div className="text-yellow-400 mb-3 font-bold">{uid === 'player1' ? 'Oscar' : 'Roy'} 設定</div>
                           <div className="space-y-3">
-                            <div><label className="block text-gray-400 mb-1 text-sm font-bold">顯示名稱：</label><input type="text" value={editSettings[uid].name} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], name: e.target.value }}))} className="w-full bg-black border border-gray-500 p-2 text-white outline-none font-bold" /></div>
-                            <div><label className="block text-gray-400 mb-1 text-sm font-bold">4位數密碼：</label><input type="text" maxLength={4} value={editSettings[uid].pin} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], pin: e.target.value.replace(/\D/g,'') }}))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" /></div>
+                            <div>
+                              <label className="block text-gray-400 mb-1 text-sm font-bold">顯示名稱：</label>
+                              <input type="text" value={editSettings[uid]?.name || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], name: e.target.value }}))} className="w-full bg-black border border-gray-500 p-2 text-white outline-none font-bold" />
+                            </div>
+                            <div>
+                              <label className="block text-gray-400 mb-1 text-sm font-bold">4位數密碼：</label>
+                              <input type="text" maxLength={4} value={editSettings[uid]?.pin || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...prev[uid], pin: e.target.value.replace(/\D/g,'') }}))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" />
+                            </div>
                             <button onClick={() => saveUserSettings(uid)} className="pixel-btn bg-blue-700 w-full py-2 font-bold text-sm">更新資料</button>
                           </div>
                         </div>
