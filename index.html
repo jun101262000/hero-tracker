@@ -45,22 +45,23 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // 您的專屬 Firebase Config
+    // 👇👇👇 請將下面這段換成您的 Firebase Config 👇👇👇
     const firebaseConfig = {
-      apiKey: "AIzaSyDQnmb2kFxQyrm_XTT1BSJOnlsILZR_puY",
-      authDomain: "herotracker-55dae.firebaseapp.com",
-      projectId: "herotracker-55dae",
-      storageBucket: "herotracker-55dae.firebasestorage.app",
-      messagingSenderId: "548324823192",
-      appId: "1:548324823192:web:fe957568df8fe708e880ed"
+      apiKey: "請貼上您的",
+      authDomain: "請貼上您的",
+      projectId: "請貼上您的",
+      storageBucket: "請貼上您的",
+      messagingSenderId: "請貼上您的",
+      appId: "請貼上您的"
     };
+    // 👆👆👆 替換結束 👆👆👆
 
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const appId = 'my-hero-tracker-app';
+    const appId = 'my-hero-tracker-family-app';
 
     const SYSTEM_VERSION = `v.${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}`;
     const TODAY_STR = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
@@ -84,7 +85,7 @@
     const DEFAULT_USERS_DATA = {
       player1: { name: '勇者 Oscar', pin: '6767', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }] },
       player2: { name: '勇者 Roy', pin: '1367', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }] },
-      changelog: [{ date: '發布版', version: 'v.1.0', changes: ['🚀 修復設定畫面黑屏崩潰問題。','🔑 更新 Oscar 與 Roy 的專屬密碼。']}], adminPin: '9999'
+      changelog: [{ date: '最新更新', version: 'v.20260821', changes: ['⚡ 跨裝置即時連線升級：修復交換日記無法即時收到的問題！現在所有裝置 100% 同步！','🛠️ 啟用了家庭共用大廳架構。']}], adminPin: '9999'
     };
 
     function App() {
@@ -99,6 +100,7 @@
       const [currentTime, setCurrentTime] = useState(new Date());
       const [showCalendar, setShowCalendar] = useState(false);
       const [showDiary, setShowDiary] = useState(false);
+      const [showChangelog, setShowChangelog] = useState(false);
       const [calMonthOffset, setCalMonthOffset] = useState(0); 
       const [celebration, setCelebration] = useState({ show: false, title: '', message: '', type: '' });
       const [adminTab, setAdminTab] = useState('overview'); 
@@ -124,34 +126,39 @@
         return () => unsubscribe();
       }, []);
 
+      // 【核心修復點】：將資料存放路徑改為家庭共用的公開區域，實現跨裝置完美同步
+      const getSharedDataRef = () => {
+        return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('family_gamedata').doc('main');
+      };
+
       useEffect(() => {
         if (!userAuth) return;
-        const gameDataRef = db.collection('hero_tracker_live').doc(appId).collection('users').doc(userAuth.uid).collection('gamedata').doc('main');
+        const sharedDataRef = getSharedDataRef();
         
         const setupData = async () => {
-          const docSnap = await gameDataRef.get();
-          if (!docSnap.exists) {
-            await gameDataRef.set(DEFAULT_USERS_DATA);
-          } else {
-            // 背景自動修補升級程式，確保舊資料不會導致崩潰，並更新密碼
-            const data = docSnap.data();
-            let needsPatch = false;
-            
-            // 升級密碼
-            if (data.player1 && data.player1.pin === '1111') { data.player1.pin = '6767'; needsPatch = true; }
-            if (data.player2 && data.player2.pin === '2222') { data.player2.pin = '1367'; needsPatch = true; }
-            // 確保管理員密碼存在
-            if (!data.adminPin) { data.adminPin = '9999'; needsPatch = true; }
-            // 確保日記存在
-            if (!data.player1.diary) { data.player1.diary = []; needsPatch = true; }
-            if (!data.player2.diary) { data.player2.diary = []; needsPatch = true; }
+          try {
+            const docSnap = await sharedDataRef.get();
+            if (!docSnap.exists) {
+              await sharedDataRef.set(DEFAULT_USERS_DATA);
+            } else {
+              const data = docSnap.data();
+              let needsPatch = false;
+              if (data.player1 && data.player1.pin === '1111') { data.player1.pin = '6767'; needsPatch = true; }
+              if (data.player2 && data.player2.pin === '2222') { data.player2.pin = '1367'; needsPatch = true; }
+              if (!data.adminPin) { data.adminPin = '9999'; needsPatch = true; }
+              if (!data.player1.diary) { data.player1.diary = []; needsPatch = true; }
+              if (!data.player2.diary) { data.player2.diary = []; needsPatch = true; }
 
-            if (needsPatch) await gameDataRef.update(data);
+              if (needsPatch) await sharedDataRef.update(data);
+            }
+          } catch(e) {
+            console.error(e);
+            alertTip("資料庫連線異常，請確認 Firebase 設定。");
           }
         };
         setupData();
 
-        const unsubscribe = gameDataRef.onSnapshot(docSnap => {
+        const unsubscribe = sharedDataRef.onSnapshot(docSnap => {
           if (docSnap.exists) {
             const data = docSnap.data();
             if(data.player1 && data.player2) {
@@ -167,12 +174,15 @@
 
       const updateCloudData = async (newData) => {
         if (!userAuth) return;
-        const gameDataRef = db.collection('hero_tracker_live').doc(appId).collection('users').doc(userAuth.uid).collection('gamedata').doc('main');
-        await gameDataRef.update(newData);
+        const sharedDataRef = getSharedDataRef();
+        await sharedDataRef.update(newData);
       };
 
+      // 監聽有新訊息時，自動滾動到底部
       useEffect(() => {
-        if (showDiary || adminTab === 'diary') setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 150);
+        if (showDiary || adminTab === 'diary') {
+          setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 150);
+        }
       }, [showDiary, adminTab, adminTargetPlayer, usersData?.player1?.diary, usersData?.player2?.diary]);
 
       useEffect(() => {
@@ -258,6 +268,21 @@
         setUsersData(newData); updateCloudData(newData);
       };
 
+      const adminToggleTask = (uid, taskId) => {
+        if (!usersData) return;
+        const user = usersData[uid];
+        const taskIndex = user.tasks.findIndex(t => t.id === taskId);
+        if (taskIndex === -1) return;
+        const task = user.tasks[taskIndex];
+        const isCompleting = !task.completed;
+        const newTasks = [...user.tasks];
+        newTasks[taskIndex] = { ...task, completed: isCompleting };
+        const pointsDiff = isCompleting ? 1 : -1;
+        const newData = { ...usersData, [uid]: { ...user, tasks: newTasks, points: Math.max(0, user.points + pointsDiff) } };
+        setUsersData(newData); updateCloudData(newData);
+        alertTip(`🛠️ 已${isCompleting ? '補蓋' : '取消'}「${task.title}」的打卡！`);
+      };
+
       const handleSendDiary = (senderId, targetUid) => {
         if (!diaryInput.trim()) return;
         const uid = targetUid || currentUser;
@@ -315,6 +340,7 @@
       const TopBar = () => (
         <div className="absolute top-2 left-2 md:top-4 md:left-4 flex items-center gap-3 z-10">
           <span className="text-xs text-gray-500 font-bold hidden md:inline">{SYSTEM_VERSION}</span>
+          <button onClick={() => setShowChangelog(true)} className="text-xs text-blue-400 hover:text-blue-300 underline">[更新日記]</button>
         </div>
       );
 
@@ -371,6 +397,19 @@
         return (
           <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 relative">
             <TopBar />
+            {showChangelog && (
+              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4`}>
+                <div className="pixel-box p-5 w-full max-w-md max-h-[80vh] flex flex-col">
+                  <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2"><h2 className="text-xl text-yellow-300 font-bold">📜 更新日誌</h2><button onClick={() => setShowChangelog(false)} className="text-gray-400 text-xl px-2">✕</button></div>
+                  <div className="overflow-y-auto custom-scrollbar pr-2 flex-1 space-y-6">
+                    {(usersData?.changelog || INITIAL_CHANGELOG).map((log, idx) => (
+                      <div key={idx} className="border-l-4 border-blue-500 pl-3"><div className="flex items-baseline gap-3 mb-2"><h3 className="text-lg font-bold text-blue-300">{log.version}</h3><span className="text-xs text-gray-400">{log.date}</span></div><ul className="space-y-1">{log.changes.map((c, cIdx) => <li key={cIdx} className="text-sm text-gray-300">{c}</li>)}</ul></div>
+                    ))}
+                  </div>
+                  <button onClick={() => setShowChangelog(false)} className="pixel-btn bg-blue-700 w-full mt-4 py-2 font-bold">關閉</button>
+                </div>
+              </div>
+            )}
             <div className="absolute top-2 right-2 md:top-4 md:right-4 flex items-center gap-2 text-xs md:text-sm text-green-400 bg-black/50 px-3 py-1 rounded-full border border-green-900">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> 雲端已連線
             </div>
@@ -390,7 +429,6 @@
       }
 
       if (view === 'admin') {
-        // 安全容錯設計：確保儲存資料時不會因為 Undefined 而崩潰
         const saveUserSettings = (uid) => {
           const newName = (editSettings?.[uid]?.name || '').trim(); 
           const newPin = (editSettings?.[uid]?.pin || '').trim();
@@ -441,14 +479,29 @@
                       <button onClick={resetDay} className="pixel-btn bg-purple-700 p-6 flex flex-col items-center gap-2 hover:bg-purple-600"><span className="text-3xl">📅</span><span className="font-bold">結算並蓋上日曆章</span><span className="text-xs text-purple-300">(產生明天任務)</span></button>
                     </div>
                     <div>
-                      <h3 className="text-lg text-blue-300 mb-2 font-bold">今日任務全覽</h3>
+                      <h3 className="text-lg text-blue-300 mb-2 font-bold flex justify-between items-end">
+                        <span>今日任務全覽</span>
+                        <span className="text-xs text-yellow-400 font-normal">💡 點擊下方項目可直接修正打卡</span>
+                      </h3>
                       <div className="overflow-x-auto bg-gray-900 border border-gray-600 p-2">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                           <thead><tr className="border-b border-gray-600"><th className="p-2 font-bold text-yellow-400 w-1/2">{usersData.player1.name} ({usersData.player1.tasks.filter(t=>t.completed).length}/{usersData.player1.tasks.length})</th><th className="p-2 font-bold text-yellow-400 w-1/2 border-l border-gray-700">{usersData.player2.name} ({usersData.player2.tasks.filter(t=>t.completed).length}/{usersData.player2.tasks.length})</th></tr></thead>
                           <tbody>
                             <tr>
-                              <td className="p-2 align-top font-bold">{usersData.player1.tasks.map(t => <div key={t.id} className="mb-1 truncate">{t.completed ? '✅' : '❌'} {t.title}</div>)}</td>
-                              <td className="p-2 align-top border-l border-gray-700 font-bold">{usersData.player2.tasks.map(t => <div key={t.id} className="mb-1 truncate">{t.completed ? '✅' : '❌'} {t.title}</div>)}</td>
+                              <td className="p-2 align-top font-bold">
+                                {usersData.player1.tasks.map(t => (
+                                  <button key={t.id} onClick={() => adminToggleTask('player1', t.id)} className={`block w-full text-left mb-2 p-2 border-2 cursor-pointer transition-colors truncate ${t.completed ? 'bg-green-900/50 border-green-500/50 text-gray-400' : 'bg-gray-800 border-gray-600 text-white hover:bg-gray-700'}`}>
+                                    {t.completed ? '✅' : '❌'} {t.title}
+                                  </button>
+                                ))}
+                              </td>
+                              <td className="p-2 align-top border-l border-gray-700 font-bold">
+                                {usersData.player2.tasks.map(t => (
+                                  <button key={t.id} onClick={() => adminToggleTask('player2', t.id)} className={`block w-full text-left mb-2 p-2 border-2 cursor-pointer transition-colors truncate ${t.completed ? 'bg-green-900/50 border-green-500/50 text-gray-400' : 'bg-gray-800 border-gray-600 text-white hover:bg-gray-700'}`}>
+                                    {t.completed ? '✅' : '❌'} {t.title}
+                                  </button>
+                                ))}
+                              </td>
                             </tr>
                           </tbody>
                         </table>
@@ -511,7 +564,6 @@
                   </div>
                 )}
 
-                {/* 🛡️ 加入安全防護的系統設定頁籤 🛡️ */}
                 {adminTab === 'settings' && (
                   <div className="space-y-6">
                     <div className="bg-gray-900 p-4 border border-gray-700">
