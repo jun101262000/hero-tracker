@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>勇者日常挑戰</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,27 +16,65 @@
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
-    body { background-color: #111827; margin: 0; padding: 0; overscroll-behavior: none; }
+    
+    body { background-color: #1d1d1d; margin: 0; padding: 0; overscroll-behavior: none; }
     .pixel-font { font-family: 'DotGothic16', sans-serif; letter-spacing: 1px; }
-    .pixel-box { border: 4px solid #fff; box-shadow: 4px 4px 0 #000, -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000; background-color: #222; color: #fff; }
-    .pixel-btn { border: 4px solid #fff; box-shadow: 4px 4px 0 #888; transition: all 0.1s; cursor: pointer; }
-    .pixel-btn:active { box-shadow: 0 0 0 #888; transform: translate(4px, 4px); }
+    
+    .mc-panel {
+      background-color: #3b3b3b; border: 4px solid; border-top-color: #5e5e5e; border-left-color: #5e5e5e;
+      border-bottom-color: #1f1f1f; border-right-color: #1f1f1f; color: #fff;
+    }
+    
+    .mc-button {
+      background-color: #7a7a7a; border: 4px solid; border-top-color: #a4a4a4; border-left-color: #a4a4a4;
+      border-bottom-color: #383838; border-right-color: #383838; color: #fff; text-shadow: 2px 2px 0 #222;
+      cursor: pointer; transition: transform 0.05s; user-select: none;
+    }
+    
+    .mc-button:active {
+      border-top-color: #383838; border-left-color: #383838; border-bottom-color: #a4a4a4; border-right-color: #a4a4a4;
+      transform: translate(2px, 2px);
+    }
+    
+    .mc-wood { background-color: #8b5a2b; border-top-color: #b07e46; border-left-color: #b07e46; border-bottom-color: #5c3a18; border-right-color: #5c3a18; }
+    .mc-grass { background-color: #4caf50; border-top-color: #81c784; border-left-color: #81c784; border-bottom-color: #2e7d32; border-right-color: #2e7d32; }
+    .mc-diamond { background-color: #00bcd4; border-top-color: #4dd0e1; border-left-color: #4dd0e1; border-bottom-color: #006064; border-right-color: #006064; }
+    .mc-redstone { background-color: #e53935; border-top-color: #ef5350; border-left-color: #ef5350; border-bottom-color: #b71c1c; border-right-color: #b71c1c; }
+    .mc-gold { background-color: #fbc02d; border-top-color: #fff59d; border-left-color: #fff59d; border-bottom-color: #f57f17; border-right-color: #f57f17; color: #3e2723; text-shadow: none; }
+    .mc-obsidian { background-color: #212121; border-top-color: #424242; border-left-color: #424242; border-bottom-color: #000; border-right-color: #000; }
+    
+    .mc-sign { background-color: #d7b57b; border: 4px solid; border-top-color: #ebd197; border-left-color: #ebd197; border-bottom-color: #8f6736; border-right-color: #8f6736; color: #3e2723; }
+
+    .mc-input {
+      background-color: #111; border: 4px solid; border-top-color: #555; border-left-color: #555;
+      border-bottom-color: #aaa; border-right-color: #aaa; color: white; padding: 8px; outline: none;
+    }
+    .mc-input:focus { border-color: #4dd0e1; }
+
     .card-check-anim { animation: cardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
     @keyframes cardPop { 0% { transform: scale(0.2); opacity: 0; } 60% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 0.2; } }
-    .exp-float { position: absolute; color: #0f0; font-weight: bold; animation: floatUp 0.8s ease-out forwards; pointer-events: none; z-index: 10; text-shadow: 1px 1px 0 #000; }
+    .exp-float { position: absolute; color: #4ff; font-weight: bold; animation: floatUp 0.8s ease-out forwards; pointer-events: none; z-index: 10; text-shadow: 2px 2px 0 #000; }
     @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.5); } }
     .celebrate-pop { animation: popInBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
     @keyframes popInBounce { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
     .spin-glow { position: absolute; inset: -50%; background: conic-gradient(from 0deg, transparent, rgba(253,224,71,0.2) 20%, transparent 40%); animation: spin 3s linear infinite; pointer-events: none; z-index: -1; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
+    
     .custom-scrollbar::-webkit-scrollbar { width: 8px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #111; border: 1px solid #555; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border: 1px solid #fff; }
-    .chat-bubble-admin { background: #1e3a8a; border: 2px solid #60a5fa; border-radius: 8px 8px 8px 0; padding: 10px 14px; max-w: 85%; width: fit-content; }
-    .chat-bubble-player { background: #166534; border: 2px solid #4ade80; border-radius: 8px 8px 0 8px; padding: 10px 14px; max-w: 85%; margin-left: auto; width: fit-content; }
   </style>
 </head>
-<body class="pixel-font">
+<body>
+  
+  <div id="syntax-error" style="display:none; background:red; color:white; padding:20px; font-weight:bold; position:fixed; top:0; left:0; width:100%; z-index:9999;"></div>
+  <script>
+    window.onerror = function(message) {
+      document.getElementById('syntax-error').style.display = 'block';
+      document.getElementById('syntax-error').innerHTML = '🚨 網頁語法錯誤：' + message;
+    };
+  </script>
+
   <div id="root"></div>
 
   <script type="text/babel">
@@ -51,17 +89,30 @@
       appId: "1:548324823192:web:fe957568df8fe708e880ed"
     };
 
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const appId = 'my-hero-tracker-family-app';
+    const appId = 'my-hero-tracker-family-app'; 
 
     const SYSTEM_VERSION = `v.${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}`;
     const TODAY_STR = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
     const NOW = Date.now();
     const getDaysDiff = (date1, date2) => Math.floor((new Date(date2.getFullYear(), date2.getMonth(), date2.getDate()).getTime() - new Date(date1.getFullYear(), date1.getMonth(), date1.getDate()).getTime()) / 86400000);
+
+    const DAILY_KNOWLEDGE = [
+      { tag: '節氣', title: '立秋', content: '代表夏天即將結束，秋天要開始了！早晚會漸漸變涼喔。' },
+      { tag: '諺語', title: 'Practice makes perfect.', content: '熟能生巧。只要多練習，就能把事情做得更好！' },
+      { tag: '歷史', title: '愛迪生 (Thomas Edison)', content: '發明了實用的白熾燈泡，讓人類在夜晚也能擁有明亮的光線！' },
+      { tag: '諺語', title: 'A piece of cake.', content: '一塊蛋糕。形容事情非常簡單，輕而易舉！' },
+      { tag: '節氣', title: '處暑', content: '「處」是退去的意思，代表夏天的炎熱終於要退去了。' },
+      { tag: '歷史', title: '萊特兄弟 (Wright brothers)', content: '發明世界上第一架成功飛行的飛機，實現人類飛上天空的夢想！' },
+      { tag: '諺語', title: 'Never give up.', content: '永不放棄。遇到困難時，堅持下去就會看到希望！' },
+      { tag: '歷史', title: '居禮夫人 (Marie Curie)', content: '發現放射性元素，是第一位獲得兩次諾貝爾獎的偉大女科學家！' },
+      { tag: '節氣', title: '白露', content: '天氣開始轉涼，早晨的草木上會結出白色的露水。' },
+      { tag: '諺語', title: 'Time is money.', content: '時間就是金錢。提醒我們要好好珍惜光陰，不要浪費時間。' }
+    ];
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+    const todayKnowledge = DAILY_KNOWLEDGE[dayOfYear % DAILY_KNOWLEDGE.length];
 
     const INITIAL_COMMON_TASKS = [
       { id: 't4', title: '暑假作業(簽名)', freqType: 'daily' }, { id: 't5', title: '英文作業(簽名)', freqType: 'daily' },
@@ -78,21 +129,23 @@
     const ROY_TASKS = INITIAL_COMMON_TASKS.map(t => ({...t, createdAt: NOW}));
 
     const DEFAULT_USERS_DATA = {
-      player1: { name: '勇者 Oscar', pin: '6767', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }] },
-      player2: { name: '勇者 Roy', pin: '1367', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }] },
-      changelog: [{ date: '最新更新', version: 'v.20260822', changes: ['✅ 系統正式上線！']} ], adminPin: '9999'
+      player1: { name: '勇者 Oscar', pin: '6767', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }], assessments: [] },
+      player2: { name: '勇者 Roy', pin: '1367', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }], assessments: [] },
+      changelog: [{ date: '最新更新', version: 'v.20260829', changes: ['🤴 新增「國王」管理員角色！與村長共同管理村莊。', '🔑 輸入專屬密碼，系統會自動判斷您是「村長」還是「國王」。']} ], adminPin: '9999', admin2Pin: '8888'
     };
 
     function App() {
       const [userAuth, setUserAuth] = useState(null);
       const [usersData, setUsersData] = useState(null);
-      const [currentUser, setCurrentUser] = useState(null);
+      const [currentUser, setCurrentUser] = useState(null); // 'player1', 'player2', 'admin' (村長), 'admin2' (守護者)
       const [view, setView] = useState('login'); 
       const [pinInput, setPinInput] = useState('');
       const [targetLogin, setTargetLogin] = useState(null);
       const [animatingTask, setAnimatingTask] = useState(null);
       const [loading, setLoading] = useState(true);
-      const [currentTime, setCurrentTime] = useState(new Date());
+      const [fatalError, setFatalError] = useState(null);
+      
+      const [currentTime, setCurrentTime] = useState(Date.now());
       const [showCalendar, setShowCalendar] = useState(false);
       const [showDiary, setShowDiary] = useState(false);
       const [showChangelog, setShowChangelog] = useState(false);
@@ -100,10 +153,16 @@
       const [celebration, setCelebration] = useState({ show: false, title: '', message: '', type: '' });
       const [adminTab, setAdminTab] = useState('overview'); 
       const [adminTargetPlayer, setAdminTargetPlayer] = useState('player1');
-      const [reportModal, setReportModal] = useState(null);
       const [editSettings, setEditSettings] = useState({ player1: { name: '', pin: '' }, player2: { name: '', pin: '' } });
       const [editAdminPin, setEditAdminPin] = useState('');
+      const [editAdmin2Pin, setEditAdmin2Pin] = useState('');
+      
+      const [taskTargetMode, setTaskTargetMode] = useState('both'); 
       const [newTaskForm, setNewTaskForm] = useState({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] });
+      
+      const [assessmentTargetMode, setAssessmentTargetMode] = useState('both');
+      const [newAssessmentForm, setNewAssessmentForm] = useState({ title: '', reason: '', count: 1 });
+
       const [diaryInput, setDiaryInput] = useState('');
       const diaryEndRef = useRef(null);
       const [alertMsg, setAlertMsg] = useState(null);
@@ -111,26 +170,22 @@
       const [confirmDialog, setConfirmDialog] = useState(null);
 
       useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
         return () => clearInterval(timer);
       }, []);
 
       useEffect(() => {
         auth.signInAnonymously().catch(e => {
-          console.error("Auth Error:", e);
-          alertTip('登入失敗，請確認 Firebase 匿名登入已開啟');
+          setFatalError(`【驗證登入失敗】\n請回 Firebase 開啟「匿名登入 (Anonymous)」。`);
           setLoading(false);
         });
         const unsubscribe = auth.onAuthStateChanged((user) => {
-          if (user) setUserAuth(user);
-          else auth.signInAnonymously().catch(e=>console.log(e));
+          if (user) { setUserAuth(user); } else { auth.signInAnonymously().catch(e=>console.log(e)); }
         });
         return () => unsubscribe();
       }, []);
 
-      const getSharedDataRef = () => {
-        return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('family_gamedata').doc('main');
-      };
+      const getSharedDataRef = () => db.collection('artifacts').doc(appId).collection('public').doc('data').collection('family_gamedata').doc('main');
 
       useEffect(() => {
         if (!userAuth) return;
@@ -147,13 +202,28 @@
               if (data.player1 && data.player1.pin === '1111') { data.player1.pin = '6767'; needsPatch = true; }
               if (data.player2 && data.player2.pin === '2222') { data.player2.pin = '1367'; needsPatch = true; }
               if (!data.adminPin) { data.adminPin = '9999'; needsPatch = true; }
+              if (!data.admin2Pin) { data.admin2Pin = '8888'; needsPatch = true; } // 新增守護者密碼補丁
               if (!data.player1.diary) { data.player1.diary = []; needsPatch = true; }
               if (!data.player2.diary) { data.player2.diary = []; needsPatch = true; }
+              
+              ['player1', 'player2'].forEach(uid => {
+                if (!data[uid].assessments) { 
+                  data[uid].assessments = []; 
+                  needsPatch = true; 
+                } else {
+                  data[uid].assessments.forEach(a => {
+                    if (a.reportedCount === undefined) {
+                      a.reportedCount = 0;
+                      needsPatch = true;
+                    }
+                  });
+                }
+              });
+
               if (needsPatch) await sharedDataRef.update(data);
             }
           } catch(e) {
-            console.error("Firestore Error:", e);
-            alertTip("資料庫權限錯誤，請確認 Firebase Rules 設為 true");
+            setFatalError(`【資料庫連線失敗】\n請確定 Firestore Rules 裡的 false 已經改成 true！`);
             setLoading(false);
           }
         };
@@ -166,24 +236,23 @@
                setUsersData(data);
                setEditSettings({ player1: { name: data.player1.name, pin: data.player1.pin }, player2: { name: data.player2.name, pin: data.player2.pin } });
                setEditAdminPin(data.adminPin || '9999');
+               setEditAdmin2Pin(data.admin2Pin || '8888');
             }
             setLoading(false);
           }
-        }, error => {
-          console.error("Snapshot Error:", error);
-          setLoading(false);
         });
         return () => unsubscribe();
       }, [userAuth]);
 
       const updateCloudData = async (newData) => {
         if (!userAuth) return;
-        const sharedDataRef = getSharedDataRef();
-        try { await sharedDataRef.update(newData); } catch (e) { console.error(e); }
+        try { await getSharedDataRef().update(newData); } catch (e) { alertTip(`存檔失敗：${e.message}`); }
       };
 
       useEffect(() => {
-        if (showDiary || adminTab === 'diary') setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 150);
+        if (showDiary || adminTab === 'diary') {
+          setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 150);
+        }
       }, [showDiary, adminTab, adminTargetPlayer, usersData?.player1?.diary, usersData?.player2?.diary]);
 
       useEffect(() => {
@@ -196,7 +265,12 @@
       useEffect(() => {
         if (pinInput.length === 4 && usersData) {
           let isError = false;
-          if (targetLogin === 'admin') { if (pinInput === usersData.adminPin) setView('admin'); else isError = true; } 
+          if (targetLogin === 'admin') { 
+            // 雙管理員密碼判斷
+            if (pinInput === usersData.adminPin) { setCurrentUser('admin'); setView('admin'); } 
+            else if (pinInput === usersData.admin2Pin) { setCurrentUser('admin2'); setView('admin'); }
+            else { isError = true; }
+          } 
           else {
             if (pinInput === usersData[targetLogin].pin) { setCurrentUser(targetLogin); setView('game'); } 
             else isError = true;
@@ -281,7 +355,7 @@
         const pointsDiff = isCompleting ? 1 : -1;
         const newData = { ...usersData, [uid]: { ...user, tasks: newTasks, points: Math.max(0, user.points + pointsDiff) } };
         setUsersData(newData); updateCloudData(newData);
-        alertTip(`🛠️ 已${isCompleting ? '補蓋' : '取消'}「${task.title}」的打卡！`);
+        alertTip(`🛠️ 已${isCompleting ? '補蓋' : '取消'}「${task.title}」`);
       };
 
       const handleSendDiary = (senderId, targetUid) => {
@@ -295,21 +369,45 @@
         setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100);
       };
 
+      const deleteDiaryMsg = (uid, msgId) => {
+        const msg = usersData[uid].diary.find(m => m.id === msgId);
+        if (!msg) return;
+        if (Date.now() - msg.timestamp > 300000) return alertTip('⚠️ 只能撤回 5 分鐘內送出的留言喔！');
+
+        setConfirmDialog({
+          message: '確定要撤回這條留言嗎？',
+          onConfirm: () => {
+            const newDiary = usersData[uid].diary.filter(m => m.id !== msgId);
+            const newData = { ...usersData, [uid]: { ...usersData[uid], diary: newDiary } };
+            setUsersData(newData); updateCloudData(newData); setConfirmDialog(null); alertTip('🗑️ 留言已撤回');
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
       const handleAddPersonalTask = () => {
         if (!newTaskForm.title.trim()) return alertTip('請輸入任務名稱');
-        const newTask = { id: `pt_${Date.now()}`, title: newTaskForm.title.trim(), freqType: newTaskForm.freqType, createdAt: Date.now() };
-        if (newTaskForm.freqType === 'interval') newTask.freqValue = parseInt(newTaskForm.freqValue) || 2;
-        if (newTaskForm.freqType === 'weekly') {
-          if (newTaskForm.freqWeekly.length === 0) return alertTip('請至少勾選一天');
-          newTask.freqValue = newTaskForm.freqWeekly;
-        }
-        const uid = adminTargetPlayer;
-        const newPersonalTasks = [...usersData[uid].personalTasks, newTask];
-        const newActiveTasks = [...usersData[uid].tasks];
-        if (shouldTaskAppear(newTask, new Date())) newActiveTasks.push({ id: newTask.id, title: newTask.title, completed: false });
-        const newData = { ...usersData, [uid]: { ...usersData[uid], personalTasks: newPersonalTasks, tasks: newActiveTasks } };
+        const targetUids = taskTargetMode === 'both' ? ['player1', 'player2'] : [taskTargetMode];
+        let newData = { ...usersData };
+
+        targetUids.forEach(uid => {
+          const newTask = { id: `pt_${Date.now()}_${uid}`, title: newTaskForm.title.trim(), freqType: newTaskForm.freqType, createdAt: Date.now() };
+          if (newTaskForm.freqType === 'interval') newTask.freqValue = parseInt(newTaskForm.freqValue) || 2;
+          if (newTaskForm.freqType === 'weekly') {
+            if (newTaskForm.freqWeekly.length === 0) { alertTip('請至少勾選一天'); return; }
+            newTask.freqValue = newTaskForm.freqWeekly;
+          }
+          const newPersonalTasks = [...newData[uid].personalTasks, newTask];
+          const newActiveTasks = [...newData[uid].tasks];
+          if (shouldTaskAppear(newTask, new Date())) newActiveTasks.push({ id: newTask.id, title: newTask.title, completed: false });
+          newData = { ...newData, [uid]: { ...newData[uid], personalTasks: newPersonalTasks, tasks: newActiveTasks } };
+        });
+
+        if(newTaskForm.freqType === 'weekly' && newTaskForm.freqWeekly.length === 0) return;
+
         setUsersData(newData); updateCloudData(newData);
-        setNewTaskForm({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] }); alertTip('✅ 新任務已加入！');
+        setNewTaskForm({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] }); 
+        alertTip(taskTargetMode === 'both' ? '✅ 已同時加入兩人的任務！' : '✅ 新任務已加入！');
       };
 
       const handleDeletePersonalTask = (uid, taskId) => {
@@ -325,58 +423,179 @@
         });
       };
 
-      const TopBar = () => (
-        <div className="absolute top-2 left-2 md:top-4 md:left-4 flex items-center gap-3 z-10">
-          <span className="text-xs text-gray-500 font-bold hidden md:inline">{SYSTEM_VERSION}</span>
-          <button onClick={() => setShowChangelog(true)} className="text-xs text-blue-400 hover:text-blue-300 underline">[更新日記]</button>
+      const handleAddAssessment = () => {
+        if (!newAssessmentForm.title.trim()) return alertTip('請輸入評量名稱！');
+        if (newAssessmentForm.count < 1) return alertTip('評量數量必須大於 0！');
+
+        const targetUids = assessmentTargetMode === 'both' ? ['player1', 'player2'] : [assessmentTargetMode];
+        let newData = { ...usersData };
+
+        targetUids.forEach(uid => {
+          const newAss = { 
+            id: `a_${Date.now()}_${uid}`, 
+            title: newAssessmentForm.title.trim(), 
+            reason: newAssessmentForm.reason.trim(), 
+            count: parseInt(newAssessmentForm.count),
+            reportedCount: 0,
+            createdAt: Date.now() 
+          };
+          newData = { ...newData, [uid]: { ...newData[uid], assessments: [...(newData[uid].assessments || []), newAss] } };
+        });
+
+        setUsersData(newData); updateCloudData(newData);
+        setNewAssessmentForm({ title: '', reason: '', count: 1 });
+        alertTip(assessmentTargetMode === 'both' ? '📚 已派發評量給兩位勇者！' : '📚 評量已派發！');
+      };
+
+      const handleDeleteAssessment = (uid, assId) => {
+        setConfirmDialog({
+          message: '確定要直接刪除這個評量嗎？',
+          onConfirm: () => {
+            const newData = { ...usersData };
+            newData[uid].assessments = (newData[uid].assessments || []).filter(a => a.id !== assId);
+            setUsersData(newData); updateCloudData(newData); setConfirmDialog(null); alertTip('🗑️ 評量已刪除');
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
+      const handleReportAssessment = (uid, assId) => {
+        if (!usersData || celebration.show) return;
+        const user = usersData[uid];
+        const ass = user.assessments.find(a => a.id === assId);
+        if (!ass) return;
+        
+        if (ass.count - (ass.reportedCount || 0) <= 0) {
+          return alertTip('⏳ 已經回報過了，請等待審核！');
+        }
+
+        setConfirmDialog({
+          message: `確定要向管理處回報完成 1 次「${ass.title}」嗎？\n(需等待確認後才會發放 EXP)`,
+          onConfirm: () => {
+            const newData = { ...usersData };
+            const targetAss = newData[uid].assessments.find(a => a.id === assId);
+            targetAss.reportedCount = (targetAss.reportedCount || 0) + 1;
+            setUsersData(newData); updateCloudData(newData);
+            setConfirmDialog(null);
+            alertTip('📩 已送出回報，等待確認！');
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
+      const approveAssessmentReport = (uid, assId) => {
+        const newData = { ...usersData };
+        const user = newData[uid];
+        const idx = user.assessments.findIndex(a => a.id === assId);
+        if (idx > -1) {
+          user.assessments[idx].reportedCount -= 1;
+          user.assessments[idx].count -= 1;
+          user.points += 3;
+          
+          if (user.assessments[idx].count <= 0) {
+            user.assessments.splice(idx, 1);
+          }
+          setUsersData(newData); updateCloudData(newData);
+          alertTip('✅ 已確認完成，發放 +3 EXP！');
+        }
+      };
+
+      const rejectAssessmentReport = (uid, assId) => {
+        const newData = { ...usersData };
+        const user = newData[uid];
+        const idx = user.assessments.findIndex(a => a.id === assId);
+        if (idx > -1) {
+          user.assessments[idx].reportedCount -= 1;
+          setUsersData(newData); updateCloudData(newData);
+          alertTip('❌ 已退回該次回報');
+        }
+      };
+
+      const KnowledgeSign = () => (
+        <div className="mc-sign p-3 mb-4 shadow-lg text-center flex flex-col items-center justify-center shrink-0">
+           <div className="text-xs font-bold text-[#5c3a18] mb-1">【本日{todayKnowledge.tag}】</div>
+           <div className="text-sm md:text-base font-bold mb-1">{todayKnowledge.title}</div>
+           <div className="text-xs md:text-sm font-bold opacity-90">{todayKnowledge.content}</div>
         </div>
       );
 
-      const renderDiaryChat = (uid, isAdmin) => {
+      const TopBar = () => (
+        <div className="absolute top-2 left-2 md:top-4 md:left-4 flex items-center gap-3 z-10">
+          <span className="text-xs text-gray-500 font-bold hidden md:inline">{SYSTEM_VERSION}</span>
+          <button onClick={() => setShowChangelog(true)} className="text-xs text-[#4dd0e1] hover:text-white underline">[更新日誌]</button>
+        </div>
+      );
+
+      const renderDiaryChat = (uid) => {
         const msgs = usersData[uid]?.diary || [];
         return (
-          <div className="flex flex-col h-full bg-gray-900 border-2 border-gray-600 p-2 relative">
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-4 flex flex-col">
+          <div className="flex flex-col h-full bg-[#1e1e1e] relative">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-4 flex flex-col">
               {msgs.length === 0 && <p className="text-gray-500 text-center text-sm mt-10">目前還沒有留言喔，寫點東西吧！</p>}
               {msgs.map(m => {
-                const isMe = isAdmin ? m.sender === 'admin' : m.sender !== 'admin';
+                const isMe = m.sender === currentUser;
+                const canDelete = isMe && (currentTime - m.timestamp <= 300000); 
+                
+                // 判別發言者名稱
+                let senderName = usersData[uid].name;
+                if (m.sender === 'admin') senderName = '👑 村長';
+                if (m.sender === 'admin2') senderName = '🤴 國王';
+
                 return (
-                  <div key={m.id} className={isMe ? 'chat-bubble-player' : 'chat-bubble-admin'}>
-                    <div className="text-[10px] md:text-xs text-gray-300 mb-1 opacity-75">
-                      {m.sender === 'admin' ? '👑 村長' : usersData[uid].name} • {new Date(m.timestamp).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}
+                  <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                    <div className="flex items-center gap-2 mb-1 px-1">
+                      <span className="text-[10px] md:text-xs text-gray-400 font-bold">
+                        {senderName} • {new Date(m.timestamp).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}
+                      </span>
+                      {canDelete && (
+                        <button onClick={() => deleteDiaryMsg(uid, m.id)} className="text-red-400 hover:text-red-300 text-xs px-1 bg-black/30 rounded border border-gray-600 cursor-pointer transition-transform active:scale-90">
+                          [❌撤回]
+                        </button>
+                      )}
                     </div>
-                    <div className="text-sm md:text-base leading-relaxed whitespace-pre-wrap font-bold">{m.text}</div>
+                    <div className={`p-2 px-3 max-w-[85%] border-2 break-words font-bold leading-relaxed text-sm md:text-base shadow-sm ${isMe ? 'bg-[#388e3c] border-[#81c784] text-white rounded-tl-lg rounded-br-lg rounded-bl-lg' : 'bg-[#5e5e5e] border-[#a4a4a4] text-white rounded-tr-lg rounded-br-lg rounded-bl-lg'}`}>
+                      {m.text}
+                    </div>
                   </div>
                 )
               })}
               <div ref={diaryEndRef} className="h-1" />
             </div>
-            <div className="mt-3 flex gap-2 shrink-0 bg-gray-800 p-2 rounded">
-              <input type="text" value={diaryInput} onChange={e => setDiaryInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendDiary(isAdmin ? 'admin' : uid, uid)} placeholder="點這裡打字..." className="flex-1 bg-black border border-gray-500 px-3 py-2 text-white outline-none text-sm md:text-base" />
-              <button onClick={() => handleSendDiary(isAdmin ? 'admin' : uid, uid)} className="pixel-btn bg-blue-700 px-4 py-2 font-bold shrink-0">送出</button>
+            <div className="shrink-0 bg-[#2b2b2b] border-t-4 border-[#1f1f1f] p-2 flex gap-2">
+              <input type="text" value={diaryInput} onChange={e => setDiaryInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendDiary(currentUser, uid)} placeholder="輸入留言..." className="mc-input flex-1 font-bold text-sm" />
+              <button onClick={() => handleSendDiary(currentUser, uid)} className="mc-button mc-diamond px-4 font-bold shrink-0">送出</button>
             </div>
           </div>
         );
       };
 
-      if (loading) return <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 text-white"><div className="text-4xl animate-bounce mb-4">👾</div><p className="font-bold tracking-widest text-lg">讀取資料中...</p></div>;
+      if (fatalError) {
+        return (
+          <div className="min-h-screen bg-[#1d1d1d] flex flex-col items-center justify-center p-6 text-white pixel-font">
+            <div className="mc-panel p-6 max-w-md w-full border-red-500 bg-[#3b1111]">
+              <h2 className="text-2xl text-yellow-300 font-bold mb-4 flex items-center gap-2"><span className="text-3xl">🚨</span> 連線阻擋</h2>
+              <div className="bg-black/80 p-4 border border-red-400 text-red-300 text-sm font-bold whitespace-pre-line mb-6 font-mono">{fatalError}</div>
+            </div>
+          </div>
+        );
+      }
 
-      if (!usersData) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white"><p>正在準備資料，請稍候...</p></div>;
+      if (loading) return <div className="h-[100dvh] bg-[#1d1d1d] flex flex-col items-center justify-center p-4 text-white pixel-font"><div className="text-4xl animate-bounce mb-4">⛏️</div><p className="font-bold tracking-widest text-lg">載入方塊中...</p></div>;
+      if (!usersData) return <div className="h-[100dvh] bg-[#1d1d1d] flex items-center justify-center text-white pixel-font"><p>準備地圖中...</p></div>;
 
       if (targetLogin) {
         return (
-          <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 select-none relative">
-            <TopBar />
-            {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
-            <div className={`pixel-box p-6 w-[90%] max-w-sm text-center`}>
+          <div className="h-[100dvh] bg-[#1d1d1d] flex flex-col items-center justify-center p-4 select-none relative pixel-font">
+            {alertMsg && <div className={`fixed top-6 z-[80] bg-[#e53935] text-white p-3 border-4 border-[#ffcdd2] text-center w-[90%] max-w-sm font-bold`}>{alertMsg}</div>}
+            <div className={`mc-panel p-6 w-[90%] max-w-sm text-center shadow-2xl`}>
               <h2 className="text-xl mb-4 text-yellow-300 font-bold">輸入解鎖密碼</h2>
-              <p className="mb-6 text-gray-400 text-sm">登入：{targetLogin === 'admin' ? '村長(管理員)' : usersData[targetLogin].name}</p>
-              <div className="text-3xl tracking-widest mb-8 h-10 text-green-400 font-bold bg-black/50 p-2 border border-gray-600 rounded">{pinInput.padEnd(4, ' _').split(' ').join('')}</div>
-              <div className="grid grid-cols-3 gap-3 md:gap-4 mb-2">
-                {[1,2,3,4,5,6,7,8,9].map(num => <button key={num} onClick={() => handleNumClick(num.toString())} className="pixel-btn bg-gray-700 py-3 text-xl font-bold rounded-sm">{num}</button>)}
-                <button onClick={() => { setTargetLogin(null); setPinInput(''); }} className="pixel-btn bg-red-600 py-3 font-bold text-sm">取消</button>
-                <button onClick={() => handleNumClick('0')} className="pixel-btn bg-gray-700 py-3 text-xl font-bold">0</button>
-                <button onClick={() => setPinInput(prev => prev.slice(0, -1))} className="pixel-btn bg-yellow-600 py-3 font-bold text-sm text-black">退格</button>
+              <p className="mb-6 text-gray-300 text-sm font-bold">登入：{targetLogin === 'admin' ? '村長 或 國王' : usersData[targetLogin].name}</p>
+              <div className="text-4xl tracking-widest mb-8 h-12 text-[#4dd0e1] font-bold bg-[#111] border-4 border-[#555] flex items-center justify-center shadow-inner">{pinInput.padEnd(4, ' _').split(' ').join('')}</div>
+              <div className="grid grid-cols-3 gap-2 md:gap-3 mb-2">
+                {[1,2,3,4,5,6,7,8,9].map(num => <button key={num} onClick={() => handleNumClick(num.toString())} className="mc-button py-4 text-2xl font-bold">{num}</button>)}
+                <button onClick={() => { setTargetLogin(null); setPinInput(''); }} className="mc-button mc-redstone py-4 font-bold text-sm">取消</button>
+                <button onClick={() => handleNumClick('0')} className="mc-button py-4 text-2xl font-bold">0</button>
+                <button onClick={() => setPinInput(prev => prev.slice(0, -1))} className="mc-button mc-gold py-4 font-bold text-sm text-[#3e2723]">退格</button>
               </div>
             </div>
           </div>
@@ -385,33 +604,32 @@
 
       if (view === 'login') {
         return (
-          <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 relative">
+          <div className="h-[100dvh] bg-[#1d1d1d] flex flex-col items-center justify-center p-4 relative pixel-font">
             <TopBar />
             {showChangelog && (
               <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4`}>
-                <div className="pixel-box p-5 w-full max-w-md max-h-[80vh] flex flex-col">
-                  <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2"><h2 className="text-xl text-yellow-300 font-bold">📜 更新日誌</h2><button onClick={() => setShowChangelog(false)} className="text-gray-400 text-xl px-2">✕</button></div>
-                  <div className="overflow-y-auto custom-scrollbar pr-2 flex-1 space-y-6">
-                    {(usersData?.changelog || INITIAL_CHANGELOG).map((log, idx) => (
-                      <div key={idx} className="border-l-4 border-blue-500 pl-3"><div className="flex items-baseline gap-3 mb-2"><h3 className="text-lg font-bold text-blue-300">{log.version}</h3><span className="text-xs text-gray-400">{log.date}</span></div><ul className="space-y-1">{log.changes.map((c, cIdx) => <li key={cIdx} className="text-sm text-gray-300">{c}</li>)}</ul></div>
+                <div className="mc-panel p-5 w-full max-w-md max-h-[80vh] flex flex-col">
+                  <div className="flex justify-between items-center mb-4"><h2 className="text-xl text-yellow-300 font-bold">📜 更新日誌</h2><button onClick={() => setShowChangelog(false)} className="text-gray-400 text-2xl">✕</button></div>
+                  <div className="overflow-y-auto custom-scrollbar pr-2 flex-1 space-y-4">
+                    {(usersData?.changelog || []).map((log, idx) => (
+                      <div key={idx} className="border-l-4 border-[#4dd0e1] pl-3"><div className="flex items-baseline gap-2"><h3 className="text-lg font-bold text-[#4dd0e1]">{log.version}</h3><span className="text-xs text-gray-400">{log.date}</span></div><ul className="space-y-1 mt-1">{log.changes.map((c, cIdx) => <li key={cIdx} className="text-sm text-gray-300 font-bold">{c}</li>)}</ul></div>
                     ))}
                   </div>
-                  <button onClick={() => setShowChangelog(false)} className="pixel-btn bg-blue-700 w-full mt-4 py-2 font-bold">關閉</button>
+                  <button onClick={() => setShowChangelog(false)} className="mc-button mc-diamond w-full mt-4 py-2 font-bold">關閉</button>
                 </div>
               </div>
             )}
-            <div className="absolute top-2 right-2 md:top-4 md:right-4 flex items-center gap-2 text-xs md:text-sm text-green-400 bg-black/50 px-3 py-1 rounded-full border border-green-900">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> 雲端已連線
-            </div>
-            <div className={`text-center mb-10 mt-8`}><h1 className="text-4xl md:text-5xl lg:text-6xl text-yellow-400 mb-4 font-bold" style={{textShadow: '3px 3px 0 #c2410c'}}>勇者日常挑戰</h1></div>
+            
+            <div className={`text-center mb-10 mt-4`}><h1 className="text-4xl md:text-5xl lg:text-6xl text-yellow-400 font-bold" style={{textShadow: '4px 4px 0 #5c3a18'}}>勇者日常挑戰</h1></div>
+            
             <div className={`space-y-4 w-[90%] max-w-sm`}>
               {['player1', 'player2'].map(uid => (
-                <button key={uid} onClick={() => setTargetLogin(uid)} className="pixel-btn bg-blue-600 w-full py-4 text-xl flex items-center justify-center gap-3 hover:bg-blue-500 font-bold">
-                  <span className="font-sans font-bold bg-white text-blue-800 px-2 py-1 rounded text-sm shrink-0 shadow-inner">{uid === 'player1' ? 'Oscar' : 'Roy'}</span> <span className="truncate">{usersData[uid].name}</span> 
+                <button key={uid} onClick={() => setTargetLogin(uid)} className="mc-button mc-grass w-full py-4 text-xl flex items-center justify-center gap-3 font-bold">
+                  <span className="bg-[#1b5e20] text-white px-2 py-1 text-sm border-2 border-[#81c784] shadow-inner">{uid === 'player1' ? 'Oscar' : 'Roy'}</span> <span className="truncate text-white" style={{textShadow: '2px 2px 0 #1b5e20'}}>{usersData[uid].name}</span> 
                 </button>
               ))}
-              <div className="pt-8 mt-8 border-t border-gray-700">
-                <button onClick={() => setTargetLogin('admin')} className="pixel-btn bg-gray-700 w-full py-3 text-sm flex items-center justify-center gap-2 hover:bg-gray-600 text-gray-300 font-bold"><span>⚙️</span> 村長辦公室</button>
+              <div className="pt-8 mt-8 border-t-4 border-[#3b3b3b]">
+                <button onClick={() => setTargetLogin('admin')} className="mc-button mc-obsidian w-full py-3 text-sm flex items-center justify-center gap-2 font-bold text-gray-300"><span>👑🛡️</span> 管理處登入</button>
               </div>
             </div>
           </div>
@@ -426,115 +644,126 @@
           const newData = { ...usersData, [uid]: { ...usersData[uid], name: newName, pin: newPin } };
           setUsersData(newData); updateCloudData(newData); alertTip(`✅ 資料已更新！`);
         };
-
         const saveAdminPin = () => {
           const newPin = (editAdminPin || '').trim();
-          if (!/^\d{4}$/.test(newPin)) return alertTip('村長密碼必須是 4 位數字！');
-          const newData = { ...usersData, adminPin: newPin };
+          const newPin2 = (editAdmin2Pin || '').trim();
+          if (!/^\d{4}$/.test(newPin) || !/^\d{4}$/.test(newPin2)) return alertTip('管理員密碼必須是 4 位數字！');
+          const newData = { ...usersData, adminPin: newPin, admin2Pin: newPin2 };
           setUsersData(newData); updateCloudData(newData); alertTip(`✅ 密碼已更新！`);
         };
 
         return (
-          <div className="min-h-screen bg-gray-900 text-white p-2 md:p-4 relative flex flex-col">
-            <TopBar />
-            {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
+          <div className="h-[100dvh] bg-[#1d1d1d] text-white flex flex-col pixel-font">
+            {alertMsg && <div className={`fixed top-16 left-1/2 transform -translate-x-1/2 z-[80] bg-[#e53935] border-4 border-[#ffcdd2] text-white p-3 text-center w-[90%] max-w-sm font-bold shadow-2xl`}>{alertMsg}</div>}
             {confirmDialog && (
               <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4`}>
-                <div className="pixel-box p-6 w-[95%] max-w-sm text-center">
-                  <p className="mb-6 text-base whitespace-pre-line leading-relaxed font-bold">{confirmDialog.message}</p>
+                <div className="mc-panel p-6 w-[95%] max-w-sm text-center">
+                  <p className="mb-6 text-base font-bold leading-relaxed whitespace-pre-line">{confirmDialog.message}</p>
                   <div className="flex justify-center gap-4">
-                    <button onClick={confirmDialog.onConfirm} className="pixel-btn bg-green-600 px-6 py-2 font-bold">確定</button>
-                    <button onClick={confirmDialog.onCancel} className="pixel-btn bg-gray-600 px-6 py-2 font-bold">取消</button>
+                    <button onClick={confirmDialog.onConfirm} className="mc-button mc-grass px-6 py-2 font-bold">確定執行</button>
+                    <button onClick={confirmDialog.onCancel} className="mc-button mc-obsidian px-6 py-2 font-bold">取消</button>
                   </div>
                 </div>
               </div>
             )}
-            <div className={`w-full max-w-5xl mx-auto flex-1 flex flex-col pt-8 md:pt-6`}>
-              <div className="flex justify-between items-center mb-4 bg-gray-800 p-4 border-[3px] border-white shrink-0">
-                <h2 className="text-xl md:text-2xl text-yellow-300 font-bold flex items-center gap-2"><span>👑</span>村長辦公室</h2>
-                <button onClick={() => setView('login')} className="pixel-btn bg-red-600 px-3 py-2 text-sm font-bold">回首頁</button>
+            
+            <div className="sticky top-0 z-40 bg-[#2b2b2b] shadow-xl border-b-4 border-[#111] shrink-0">
+              <div className="flex justify-between items-center p-2 bg-[#3b3b3b] border-b-4 border-[#1f1f1f]">
+                <h2 className="text-base md:text-lg text-yellow-300 font-bold tracking-wider" style={{textShadow: '2px 2px 0 #000'}}>
+                  {currentUser === 'admin' ? '👑 村長辦公室' : '🤴 國王城堡'}
+                </h2>
+                <button onClick={() => setView('login')} className="mc-button mc-redstone px-3 py-1 text-xs font-bold">回首頁</button>
               </div>
-              <div className="flex overflow-x-auto gap-2 mb-4 shrink-0 custom-scrollbar pb-2">
-                {[{ id: 'overview', icon: '📊', label: '總覽與報表' }, { id: 'tasks', icon: '📝', label: '任務管理' }, { id: 'diary', icon: '📓', label: '勇者信箱' }, { id: 'settings', icon: '⚙️', label: '系統設定' }].map(tab => (
-                  <button key={tab.id} onClick={() => setAdminTab(tab.id)} className={`pixel-btn px-4 py-2 text-sm font-bold whitespace-nowrap ${adminTab === tab.id ? 'bg-blue-600' : 'bg-gray-700'}`}>
+              <div className="flex overflow-x-auto gap-1 p-2 custom-scrollbar">
+                {[{ id: 'overview', icon: '📊', label: '總覽' }, { id: 'tasks', icon: '📝', label: '任務' }, { id: 'assessments', icon: '📚', label: '評量' }, { id: 'diary', icon: '📓', label: '信箱' }, { id: 'settings', icon: '⚙️', label: '設定' }].map(tab => (
+                  <button key={tab.id} onClick={() => setAdminTab(tab.id)} className={`mc-button px-2 py-1.5 text-xs md:text-sm whitespace-nowrap font-bold flex-1 ${adminTab === tab.id ? 'mc-diamond' : ''}`}>
                     {tab.icon} {tab.label}
                   </button>
                 ))}
               </div>
-              <div className="pixel-box p-3 md:p-5 flex-1 overflow-y-auto custom-scrollbar flex flex-col relative">
+              {(adminTab === 'diary' || adminTab === 'tasks' || adminTab === 'assessments') && (
+                <div className="flex gap-2 px-2 pb-2">
+                  <button onClick={() => setAdminTargetPlayer('player1')} className={`mc-button flex-1 py-1.5 text-xs md:text-sm font-bold ${adminTargetPlayer === 'player1' ? 'mc-grass' : 'mc-wood'}`}>👤 {usersData.player1.name}</button>
+                  <button onClick={() => setAdminTargetPlayer('player2')} className={`mc-button flex-1 py-1.5 text-xs md:text-sm font-bold ${adminTargetPlayer === 'player2' ? 'mc-grass' : 'mc-wood'}`}>👤 {usersData.player2.name}</button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 bg-[#1d1d1d]">
+              <div className="max-w-5xl mx-auto h-full flex flex-col">
                 
+                <KnowledgeSign />
+
                 {adminTab === 'overview' && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-4">
-                      <button onClick={resetDay} className="pixel-btn bg-purple-700 p-6 flex flex-col items-center gap-2 hover:bg-purple-600"><span className="text-3xl">📅</span><span className="font-bold">結算並蓋上日曆章</span><span className="text-xs text-purple-300">(產生明天任務)</span></button>
-                    </div>
-                    <div>
-                      <h3 className="text-lg text-blue-300 mb-2 font-bold flex justify-between items-end">
-                        <span>今日任務全覽</span>
-                        <span className="text-xs text-yellow-400 font-normal">💡 點擊下方項目可直接修正打卡</span>
+                  <div className="space-y-4">
+                    <button onClick={resetDay} className="mc-button mc-diamond w-full py-4 flex flex-col items-center gap-1"><span className="text-2xl">📅</span><span className="font-bold">結算並蓋上日曆章</span><span className="text-xs text-[#006064] font-bold">(產生明天任務)</span></button>
+                    <div className="mc-panel p-2">
+                      <h3 className="text-sm text-[#4dd0e1] mb-2 font-bold flex justify-between items-end border-b-4 border-[#1f1f1f] pb-1">
+                        <span>今日任務全覽</span><span className="text-[10px] text-yellow-400">💡 點擊下方可修正</span>
                       </h3>
-                      <div className="overflow-x-auto bg-gray-900 border border-gray-600 p-2">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                          <thead><tr className="border-b border-gray-600"><th className="p-2 font-bold text-yellow-400 w-1/2">{usersData.player1.name} ({usersData.player1.tasks.filter(t=>t.completed).length}/{usersData.player1.tasks.length})</th><th className="p-2 font-bold text-yellow-400 w-1/2 border-l border-gray-700">{usersData.player2.name} ({usersData.player2.tasks.filter(t=>t.completed).length}/{usersData.player2.tasks.length})</th></tr></thead>
-                          <tbody>
-                            <tr>
-                              <td className="p-2 align-top font-bold">
-                                {usersData.player1.tasks.map(t => (
-                                  <button key={t.id} onClick={() => adminToggleTask('player1', t.id)} className={`block w-full text-left mb-2 p-2 border-2 cursor-pointer transition-colors truncate ${t.completed ? 'bg-green-900/50 border-green-500/50 text-gray-400' : 'bg-gray-800 border-gray-600 text-white hover:bg-gray-700'}`}>
-                                    {t.completed ? '✅' : '❌'} {t.title}
-                                  </button>
-                                ))}
-                              </td>
-                              <td className="p-2 align-top border-l border-gray-700 font-bold">
-                                {usersData.player2.tasks.map(t => (
-                                  <button key={t.id} onClick={() => adminToggleTask('player2', t.id)} className={`block w-full text-left mb-2 p-2 border-2 cursor-pointer transition-colors truncate ${t.completed ? 'bg-green-900/50 border-green-500/50 text-gray-400' : 'bg-gray-800 border-gray-600 text-white hover:bg-gray-700'}`}>
-                                    {t.completed ? '✅' : '❌'} {t.title}
-                                  </button>
-                                ))}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
+                      <table className="w-full text-left text-xs md:text-sm whitespace-nowrap">
+                        <thead><tr className="border-b-4 border-[#1f1f1f] bg-[#2b2b2b]"><th className="p-2 font-bold text-yellow-400 w-1/2">{usersData.player1.name} ({usersData.player1.tasks.filter(t=>t.completed).length}/{usersData.player1.tasks.length})</th><th className="p-2 font-bold text-yellow-400 w-1/2 border-l-4 border-[#1f1f1f]">{usersData.player2.name} ({usersData.player2.tasks.filter(t=>t.completed).length}/{usersData.player2.tasks.length})</th></tr></thead>
+                        <tbody>
+                          <tr>
+                            <td className="p-1 align-top border-r-2 border-[#1f1f1f]">
+                              {usersData.player1.tasks.map(t => (
+                                <button key={t.id} onClick={() => adminToggleTask('player1', t.id)} className={`block w-full text-left mb-1 p-1.5 border-2 font-bold truncate transition-transform active:scale-95 ${t.completed ? 'bg-[#388e3c]/50 border-[#4caf50]/50 text-gray-400' : 'bg-[#3b3b3b] border-[#5e5e5e] text-white hover:bg-[#555]'}`}>
+                                  {t.completed ? '✅' : '❌'} {t.title}
+                                </button>
+                              ))}
+                            </td>
+                            <td className="p-1 align-top">
+                              {usersData.player2.tasks.map(t => (
+                                <button key={t.id} onClick={() => adminToggleTask('player2', t.id)} className={`block w-full text-left mb-1 p-1.5 border-2 font-bold truncate transition-transform active:scale-95 ${t.completed ? 'bg-[#388e3c]/50 border-[#4caf50]/50 text-gray-400' : 'bg-[#3b3b3b] border-[#5e5e5e] text-white hover:bg-[#555]'}`}>
+                                  {t.completed ? '✅' : '❌'} {t.title}
+                                </button>
+                              ))}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
 
                 {adminTab === 'tasks' && (
-                  <div className="flex flex-col h-full space-y-4">
-                    <div className="flex gap-2 bg-gray-900 p-2 border border-gray-600 shrink-0">
-                      <button onClick={() => setAdminTargetPlayer('player1')} className={`pixel-btn flex-1 py-2 font-bold text-sm ${adminTargetPlayer === 'player1' ? 'bg-indigo-600' : 'bg-gray-700'}`}>{usersData.player1.name}</button>
-                      <button onClick={() => setAdminTargetPlayer('player2')} className={`pixel-btn flex-1 py-2 font-bold text-sm ${adminTargetPlayer === 'player2' ? 'bg-indigo-600' : 'bg-gray-700'}`}>{usersData.player2.name}</button>
-                    </div>
-                    <div className="bg-gray-900 p-4 border border-gray-600 shrink-0">
-                      <h3 className="text-yellow-300 font-bold mb-3">➕ 新增專屬任務</h3>
-                      <div className="flex flex-col md:flex-row gap-3">
-                        <input type="text" placeholder="任務名稱" value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm, title: e.target.value})} className="flex-1 bg-black border border-gray-500 p-2 text-white outline-none text-sm font-bold" />
+                  <div className="flex flex-col space-y-3">
+                    <div className="mc-panel p-3">
+                      <h3 className="text-yellow-300 font-bold mb-2 text-sm">➕ 派發新任務</h3>
+                      <div className="flex gap-1 mb-2 bg-[#111] p-1 border-2 border-[#555]">
+                         <button onClick={()=>setTaskTargetMode('both')} className={`flex-1 text-xs py-1 font-bold ${taskTargetMode === 'both' ? 'bg-[#4caf50] text-white' : 'text-gray-400'}`}>👥 兩人</button>
+                         <button onClick={()=>setTaskTargetMode('player1')} className={`flex-1 text-xs py-1 font-bold border-l border-[#333] ${taskTargetMode === 'player1' ? 'bg-[#00bcd4] text-white' : 'text-gray-400'}`}>👤 Oscar</button>
+                         <button onClick={()=>setTaskTargetMode('player2')} className={`flex-1 text-xs py-1 font-bold border-l border-[#333] ${taskTargetMode === 'player2' ? 'bg-[#00bcd4] text-white' : 'text-gray-400'}`}>👤 Roy</button>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <input type="text" placeholder="任務名稱" value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm, title: e.target.value})} className="mc-input text-sm font-bold" />
                         <div className="flex gap-2">
-                          <select value={newTaskForm.freqType} onChange={e=>setNewTaskForm({...newTaskForm, freqType: e.target.value})} className="bg-black border border-gray-500 p-2 text-white outline-none text-sm cursor-pointer font-bold">
+                          <select value={newTaskForm.freqType} onChange={e=>setNewTaskForm({...newTaskForm, freqType: e.target.value})} className="mc-input flex-1 text-sm font-bold p-1">
                             <option value="daily">每天</option><option value="interval">間隔天數</option><option value="weekly">每週特定</option><option value="once">只有一次</option>
                           </select>
-                          {newTaskForm.freqType === 'interval' && <div className="flex items-center gap-1 bg-black border border-gray-500 px-2"><input type="number" min="1" value={newTaskForm.freqValue} onChange={e=>setNewTaskForm({...newTaskForm, freqValue: e.target.value})} className="w-10 bg-transparent text-green-400 text-center outline-none font-bold" /><span className="font-bold text-sm">天一次</span></div>}
+                          {newTaskForm.freqType === 'interval' && <div className="flex items-center gap-1 mc-input px-2 py-1"><input type="number" min="1" value={newTaskForm.freqValue} onChange={e=>setNewTaskForm({...newTaskForm, freqValue: e.target.value})} className="w-10 bg-transparent text-[#4dd0e1] text-center outline-none font-bold" /><span className="font-bold text-xs">天/次</span></div>}
                         </div>
                       </div>
                       {newTaskForm.freqType === 'weekly' && (
-                        <div className="flex gap-2 mt-3 flex-wrap">
+                        <div className="flex gap-1 mt-2 flex-wrap">
                           {['日','一','二','三','四','五','六'].map((day, idx) => (
-                            <label key={idx} className="flex items-center gap-1 bg-gray-800 px-2 py-1 border border-gray-600 cursor-pointer select-none text-sm font-bold">
-                              <input type="checkbox" checked={newTaskForm.freqWeekly.includes(idx)} onChange={(e) => { const newWeekly = e.target.checked ? [...newTaskForm.freqWeekly, idx] : newTaskForm.freqWeekly.filter(v => v !== idx); setNewTaskForm({...newTaskForm, freqWeekly: newWeekly}); }} className="accent-blue-500 w-4 h-4" /> {day}
+                            <label key={idx} className="flex items-center gap-1 bg-[#111] border-2 border-[#555] px-2 py-1 text-xs font-bold cursor-pointer">
+                              <input type="checkbox" checked={newTaskForm.freqWeekly.includes(idx)} onChange={(e) => { const newWeekly = e.target.checked ? [...newTaskForm.freqWeekly, idx] : newTaskForm.freqWeekly.filter(v => v !== idx); setNewTaskForm({...newTaskForm, freqWeekly: newWeekly}); }} className="accent-[#4dd0e1]" /> {day}
                             </label>
                           ))}
                         </div>
                       )}
-                      <button onClick={handleAddPersonalTask} className="pixel-btn bg-green-700 w-full mt-3 py-2 font-bold text-sm">確認加入</button>
+                      <button onClick={handleAddPersonalTask} className="mc-button mc-grass w-full mt-2 py-2 text-sm font-bold">確認發布任務</button>
                     </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar border border-gray-600 p-2 bg-gray-900">
+
+                    <div className="mc-panel p-2 flex-1">
+                      <h3 className="text-[#81c784] font-bold text-sm mb-2 border-b-2 border-[#555] pb-1">▶ {usersData[adminTargetPlayer].name} 的常駐任務單</h3>
                       {usersData[adminTargetPlayer].personalTasks.map((t, idx) => {
                         let freqLabel = '每天'; if (t.freqType === 'once') freqLabel = '一次'; if (t.freqType === 'interval') freqLabel = `${t.freqValue}天一次`; if (t.freqType === 'weekly') freqLabel = '週' + t.freqValue.map(v => ['日','一','二','三','四','五','六'][v]).join(',');
                         return (
-                          <div key={t.id} className="flex justify-between items-center bg-gray-800 p-2 mb-2 border border-gray-600">
-                            <div className="flex flex-col flex-1 truncate mr-2"><span className="font-bold text-sm">{idx + 1}. {t.title}</span><span className="text-xs text-gray-400 font-bold">🕒 頻率: {freqLabel}</span></div>
-                            <button onClick={()=>handleDeletePersonalTask(adminTargetPlayer, t.id)} className="pixel-btn bg-red-800 px-3 py-1 text-xs shrink-0">刪除</button>
+                          <div key={t.id} className="flex justify-between items-center bg-[#2b2b2b] border-2 border-[#1f1f1f] p-2 mb-1">
+                            <div className="flex flex-col flex-1 truncate mr-2"><span className="font-bold text-sm text-[#fff]">{idx + 1}. {t.title}</span><span className="text-[10px] text-yellow-300 font-bold">🕒 頻率: {freqLabel}</span></div>
+                            <button onClick={()=>handleDeletePersonalTask(adminTargetPlayer, t.id)} className="mc-button mc-redstone px-2 py-1 text-xs shrink-0 font-bold">刪除</button>
                           </div>
                         );
                       })}
@@ -542,44 +771,91 @@
                   </div>
                 )}
 
-                {adminTab === 'diary' && (
-                  <div className="flex flex-col h-full space-y-4">
-                    <div className="flex gap-2 bg-gray-900 p-2 border border-gray-600 shrink-0">
-                      <button onClick={() => setAdminTargetPlayer('player1')} className={`pixel-btn flex-1 py-2 font-bold text-sm ${adminTargetPlayer === 'player1' ? 'bg-green-700' : 'bg-gray-700'}`}>💌 {usersData.player1.name}</button>
-                      <button onClick={() => setAdminTargetPlayer('player2')} className={`pixel-btn flex-1 py-2 font-bold text-sm ${adminTargetPlayer === 'player2' ? 'bg-green-700' : 'bg-gray-700'}`}>💌 {usersData.player2.name}</button>
+                {/* 📚 評量管理 (管理端) */}
+                {adminTab === 'assessments' && (
+                  <div className="flex flex-col space-y-3">
+                    <div className="mc-panel p-3">
+                      <h3 className="text-yellow-300 font-bold mb-2 text-sm">➕ 派發評量 (可累積)</h3>
+                      <div className="flex gap-1 mb-2 bg-[#111] p-1 border-2 border-[#555]">
+                         <button onClick={()=>setAssessmentTargetMode('both')} className={`flex-1 text-xs py-1 font-bold ${assessmentTargetMode === 'both' ? 'bg-[#4caf50] text-white' : 'text-gray-400'}`}>👥 兩人</button>
+                         <button onClick={()=>setAssessmentTargetMode('player1')} className={`flex-1 text-xs py-1 font-bold border-l border-[#333] ${assessmentTargetMode === 'player1' ? 'bg-[#00bcd4] text-white' : 'text-gray-400'}`}>👤 Oscar</button>
+                         <button onClick={()=>setAssessmentTargetMode('player2')} className={`flex-1 text-xs py-1 font-bold border-l border-[#333] ${assessmentTargetMode === 'player2' ? 'bg-[#00bcd4] text-white' : 'text-gray-400'}`}>👤 Roy</button>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <input type="text" placeholder="評量名稱 (例: 數學考卷)" value={newAssessmentForm.title} onChange={e=>setNewAssessmentForm({...newAssessmentForm, title: e.target.value})} className="mc-input text-sm font-bold" />
+                        <input type="text" placeholder="派發原因 (可填寫)" value={newAssessmentForm.reason} onChange={e=>setNewAssessmentForm({...newAssessmentForm, reason: e.target.value})} className="mc-input text-sm font-bold" />
+                        <div className="flex items-center gap-2 mc-input px-2 py-1 w-full justify-between">
+                           <span className="font-bold text-sm text-gray-300">派發數量：</span>
+                           <div className="flex items-center">
+                             <button onClick={()=>setNewAssessmentForm({...newAssessmentForm, count: Math.max(1, newAssessmentForm.count - 1)})} className="mc-button px-2 py-0.5 font-bold">-</button>
+                             <span className="w-10 text-center font-bold text-[#4dd0e1] text-lg">{newAssessmentForm.count}</span>
+                             <button onClick={()=>setNewAssessmentForm({...newAssessmentForm, count: newAssessmentForm.count + 1})} className="mc-button px-2 py-0.5 font-bold">+</button>
+                           </div>
+                        </div>
+                      </div>
+                      <button onClick={handleAddAssessment} className="mc-button mc-diamond w-full mt-2 py-2 text-sm font-bold">確認派發評量</button>
                     </div>
-                    <div className="flex-1 min-h-[350px]">
-                      {renderDiaryChat(adminTargetPlayer, true)}
+
+                    <div className="mc-panel p-2 flex-1">
+                      <h3 className="text-[#4dd0e1] font-bold text-sm mb-2 border-b-2 border-[#555] pb-1">▶ {usersData[adminTargetPlayer].name} 的評量管理</h3>
+                      {(!usersData[adminTargetPlayer].assessments || usersData[adminTargetPlayer].assessments.length === 0) ? (
+                         <div className="text-center text-gray-500 font-bold py-4 text-sm">目前沒有任何待完成的評量！</div>
+                      ) : (
+                        usersData[adminTargetPlayer].assessments.map((a, idx) => (
+                          <div key={a.id} className="flex flex-col bg-[#2b2b2b] border-2 border-[#1f1f1f] p-2 mb-2">
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex flex-col flex-1 truncate mr-2">
+                                <span className="font-bold text-sm text-[#fff]">{a.title} <span className="text-[#ffb74d] ml-1">x {a.count}</span></span>
+                                {a.reason && <span className="text-[10px] text-gray-400 font-bold mt-0.5 truncate border-l-2 border-gray-600 pl-1">{a.reason}</span>}
+                              </div>
+                              <button onClick={()=>handleDeleteAssessment(adminTargetPlayer, a.id)} className="mc-button mc-redstone px-2 py-1 text-xs shrink-0 font-bold">刪除</button>
+                            </div>
+                            
+                            {/* 👑 管理員審核區塊 */}
+                            {(a.reportedCount > 0) && (
+                              <div className="bg-[#4caf50]/20 border border-[#4caf50] p-2 mt-1 flex justify-between items-center">
+                                 <span className="text-xs font-bold text-[#81c784]">🔔 已回報 ({a.reportedCount}次)</span>
+                                 <div className="flex gap-1">
+                                   <button onClick={() => approveAssessmentReport(adminTargetPlayer, a.id)} className="mc-button mc-grass px-2 py-1 text-xs font-bold">✅ 認可</button>
+                                   <button onClick={() => rejectAssessmentReport(adminTargetPlayer, a.id)} className="mc-button mc-obsidian px-2 py-1 text-xs font-bold text-gray-300">❌ 退回</button>
+                                 </div>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
 
+                {adminTab === 'diary' && (
+                  <div className="flex flex-col h-[60dvh] border-4 border-[#5e5e5e] bg-[#1e1e1e]">
+                    {renderDiaryChat(adminTargetPlayer)}
+                  </div>
+                )}
+
                 {adminTab === 'settings' && (
-                  <div className="space-y-6">
-                    <div className="bg-gray-900 p-4 border border-gray-700">
-                      <div className="text-red-400 mb-3 font-bold">👑 村長帳號設定</div>
-                      <div className="flex items-end gap-3">
-                        <div className="flex-1">
-                          <label className="block text-gray-400 mb-1 text-sm font-bold">修改 4 位數密碼：</label>
-                          <input type="text" maxLength={4} value={editAdminPin || ''} onChange={(e) => setEditAdminPin(e.target.value.replace(/\D/g,''))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" />
+                  <div className="space-y-4 pb-10">
+                    <div className="mc-panel p-4">
+                      <div className="text-[#ef5350] mb-2 font-bold text-sm">👑 管理員帳號設定</div>
+                      <div className="flex flex-col gap-2 border-b-2 border-[#555] pb-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <label className="w-24 text-gray-300 text-xs font-bold">👑 村長密碼：</label>
+                          <input type="text" maxLength={4} value={editAdminPin || ''} onChange={(e) => setEditAdminPin(e.target.value.replace(/\D/g,''))} className="flex-1 mc-input text-[#4dd0e1] tracking-widest text-center font-bold py-1" />
                         </div>
-                        <button onClick={saveAdminPin} className="pixel-btn bg-red-800 px-4 py-2 font-bold shrink-0">儲存</button>
+                        <div className="flex items-center gap-2">
+                          <label className="w-24 text-gray-300 text-xs font-bold">🤴 國王密碼：</label>
+                          <input type="text" maxLength={4} value={editAdmin2Pin || ''} onChange={(e) => setEditAdmin2Pin(e.target.value.replace(/\D/g,''))} className="flex-1 mc-input text-[#4dd0e1] tracking-widest text-center font-bold py-1" />
+                        </div>
+                        <button onClick={saveAdminPin} className="mc-button mc-redstone w-full py-1.5 font-bold text-xs mt-1">儲存管理員密碼</button>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                       {['player1', 'player2'].map(uid => (
-                        <div key={uid} className="bg-gray-900 p-4 border border-gray-700">
-                          <div className="text-yellow-400 mb-3 font-bold">{uid === 'player1' ? 'Oscar' : 'Roy'} 設定</div>
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-gray-400 mb-1 text-sm font-bold">顯示名稱：</label>
-                              <input type="text" value={editSettings?.[uid]?.name || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...(prev[uid] || {}), name: e.target.value }}))} className="w-full bg-black border border-gray-500 p-2 text-white outline-none font-bold" />
-                            </div>
-                            <div>
-                              <label className="block text-gray-400 mb-1 text-sm font-bold">4位數密碼：</label>
-                              <input type="text" maxLength={4} value={editSettings?.[uid]?.pin || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...(prev[uid] || {}), pin: e.target.value.replace(/\D/g,'') }}))} className="w-full bg-black border border-gray-500 p-2 text-green-400 tracking-widest text-center outline-none font-bold" />
-                            </div>
-                            <button onClick={() => saveUserSettings(uid)} className="pixel-btn bg-blue-700 w-full py-2 font-bold text-sm">更新資料</button>
+                        <div key={uid} className="mt-3">
+                          <div className="text-yellow-400 mb-1 font-bold text-xs">{uid === 'player1' ? 'Oscar' : 'Roy'} 設定</div>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex gap-2"><input type="text" placeholder="顯示名稱" value={editSettings?.[uid]?.name || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...(prev[uid] || {}), name: e.target.value }}))} className="flex-1 mc-input font-bold text-xs py-1" /><input type="text" placeholder="密碼" maxLength={4} value={editSettings?.[uid]?.pin || ''} onChange={(e) => setEditSettings(prev => ({...prev, [uid]: { ...(prev[uid] || {}), pin: e.target.value.replace(/\D/g,'') }}))} className="w-16 mc-input text-[#4dd0e1] tracking-widest text-center font-bold py-1" /></div>
+                            <button onClick={() => saveUserSettings(uid)} className="mc-button mc-diamond w-full py-1.5 font-bold text-xs">更新勇者資料</button>
                           </div>
                         </div>
                       ))}
@@ -592,31 +868,31 @@
         );
       }
 
-      // 4. 遊戲畫面
+      // 4. 遊戲畫面 (勇者端)
       const user = usersData[currentUser];
       const totalCount = user.tasks.length;
       const completedCount = user.tasks.filter(t => t.completed).length;
       const progressPercent = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
       const avatarText = currentUser === 'player1' ? 'Oscar' : 'Roy';
-      const hasNewMsg = user.diary.length > 0 && user.diary[user.diary.length-1].sender === 'admin';
+      // 檢查是否最後一則留言是兩位管理員的其中一位發的
+      const hasNewMsg = user.diary.length > 0 && ['admin', 'admin2'].includes(user.diary[user.diary.length-1].sender);
 
       return (
-        <div className="min-h-screen bg-gray-900 text-white relative flex flex-col">
-          <TopBar />
-          {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-red-600 text-white p-4 rounded border-2 border-white shadow-lg text-center w-[90%] max-w-sm whitespace-pre-line`}>{alertMsg}</div>}
+        <div className="h-[100dvh] bg-[#1d1d1d] text-white flex flex-col relative pixel-font">
+          {alertMsg && <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] bg-[#e53935] border-4 border-[#ffcdd2] text-white p-3 text-center w-[90%] max-w-sm font-bold shadow-2xl`}>{alertMsg}</div>}
           
           {showCalendar && (
             <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4`}>
-              <div className="pixel-box p-4 md:p-6 w-full max-w-md flex flex-col max-h-[90vh]">
-                <div className="flex justify-between items-center mb-4 border-b border-gray-600 pb-2 shrink-0"><h2 className="text-xl text-yellow-300 font-bold">📅 我的打卡日曆</h2><button onClick={() => {setShowCalendar(false); setCalMonthOffset(0);}} className="text-gray-400 text-xl px-2">✕</button></div>
+              <div className="mc-panel p-4 md:p-6 w-full max-w-md flex flex-col max-h-[90vh]">
+                <div className="flex justify-between items-center mb-4 border-b-4 border-[#1f1f1f] pb-2 shrink-0"><h2 className="text-xl text-yellow-300 font-bold" style={{textShadow: '2px 2px 0 #000'}}>📅 打卡日曆</h2><button onClick={() => {setShowCalendar(false); setCalMonthOffset(0);}} className="text-gray-300 text-2xl font-bold">✕</button></div>
                 <div className="w-full">
                   <div className="flex justify-between items-center mb-4 px-2">
-                    <button onClick={() => setCalMonthOffset(p => p - 1)} className="pixel-btn bg-gray-700 px-3 py-1 font-bold">◀</button>
-                    <span className="text-xl text-yellow-300 font-bold tracking-widest">{new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getFullYear()} / {String(new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getMonth() + 1).padStart(2, '0')}</span>
-                    <button onClick={() => setCalMonthOffset(p => p + 1)} className="pixel-btn bg-gray-700 px-3 py-1 font-bold">▶</button>
+                    <button onClick={() => setCalMonthOffset(p => p - 1)} className="mc-button px-3 py-1 font-bold">◀</button>
+                    <span className="text-xl text-[#4dd0e1] font-bold tracking-widest bg-[#111] px-3 py-1 border-4 border-[#555] shadow-inner">{new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getFullYear()} / {String(new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getMonth() + 1).padStart(2, '0')}</span>
+                    <button onClick={() => setCalMonthOffset(p => p + 1)} className="mc-button px-3 py-1 font-bold">▶</button>
                   </div>
                   <div className="grid grid-cols-7 gap-1 text-center mb-2 font-bold text-gray-400"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
-                  <div className="grid grid-cols-7 gap-1 md:gap-2 text-center text-sm md:text-base">
+                  <div className="grid grid-cols-7 gap-1 text-center text-sm">
                     {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + calMonthOffset, 1).getDay() }).map((_, i) => <div key={`b-${i}`} className="p-2"></div>)}
                     {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + calMonthOffset + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
                       const targetYear = new Date(new Date().setMonth(new Date().getMonth() + calMonthOffset)).getFullYear();
@@ -624,74 +900,98 @@
                       const dStr = `${targetYear}-${targetMonth}-${String(d).padStart(2,'0')}`;
                       let record = user.dailyRecords[dStr];
                       if (dStr === TODAY_STR) { if (completedCount > 0 || record) record = { c: completedCount, t: totalCount }; }
-                      let stamp = ''; let bgClass = 'bg-gray-800 border-gray-700'; 
+                      let stamp = ''; let bgClass = 'bg-[#3b3b3b] border-[#1f1f1f]'; 
                       if (record && record.c > 0) {
                         const ratio = record.c / record.t;
-                        if (ratio === 1) { stamp = '🌟'; bgClass = 'bg-yellow-900/40 border-yellow-500/50'; } 
-                        else if (ratio >= 0.5) { stamp = '🟢'; bgClass = 'bg-green-900/40 border-green-500/50'; } 
-                        else { stamp = '⭕'; bgClass = 'bg-orange-900/40 border-orange-500/50'; }
-                      } else if (dStr === TODAY_STR) bgClass = 'bg-blue-900/40 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]';
-                      return (<div key={d} className={`flex flex-col items-center justify-center border p-1 rounded-sm aspect-square relative ${bgClass}`}><span className="text-[10px] md:text-xs text-gray-300 absolute top-1 left-1">{d}</span><span className="text-xl md:text-2xl mt-3">{stamp}</span></div>);
+                        if (ratio === 1) { stamp = '🌟'; bgClass = 'bg-[#fbc02d]/40 border-[#f57f17]/50'; } 
+                        else if (ratio >= 0.5) { stamp = '🟢'; bgClass = 'bg-[#4caf50]/40 border-[#2e7d32]/50'; } 
+                        else { stamp = '⭕'; bgClass = 'bg-[#e53935]/40 border-[#b71c1c]/50'; }
+                      } else if (dStr === TODAY_STR) bgClass = 'bg-[#00bcd4]/40 border-[#006064] shadow-[0_0_8px_rgba(0,188,212,0.6)]';
+                      return (<div key={d} className={`flex flex-col items-center justify-center border-2 p-1 aspect-square relative ${bgClass}`}><span className="text-[10px] text-gray-300 absolute top-0.5 left-1 font-bold">{d}</span><span className="text-lg md:text-xl mt-3">{stamp}</span></div>);
                     })}
                   </div>
                 </div>
-                <button onClick={() => {setShowCalendar(false); setCalMonthOffset(0);}} className="pixel-btn bg-gray-700 w-full mt-6 py-2 font-bold shrink-0">返回任務</button>
+                <button onClick={() => {setShowCalendar(false); setCalMonthOffset(0);}} className="mc-button mc-wood w-full mt-6 py-2 font-bold shrink-0">返回</button>
               </div>
             </div>
           )}
 
           {showDiary && (
             <div className={`fixed inset-0 bg-black/90 z-[100] flex flex-col`}>
-              <div className="flex justify-between items-center p-3 md:p-4 bg-gray-900 border-b-4 border-gray-600 shrink-0">
-                <h2 className="text-xl text-yellow-300 font-bold">📓 寫給村長的交換日記</h2>
-                <button onClick={() => setShowDiary(false)} className="text-gray-400 text-3xl font-bold px-2">✕</button>
+              <div className="flex justify-between items-center p-3 bg-[#3b3b3b] border-b-4 border-[#1f1f1f] shrink-0 shadow-lg">
+                <h2 className="text-lg md:text-xl text-yellow-300 font-bold tracking-wider" style={{textShadow: '2px 2px 0 #000'}}>📓 交換日記</h2>
+                <button onClick={() => setShowDiary(false)} className="text-gray-300 text-2xl font-bold px-2">✕</button>
               </div>
-              <div className="flex-1 overflow-hidden">
-                {renderDiaryChat(currentUser, false)}
+              <div className="flex-1 overflow-hidden bg-[#1e1e1e]">
+                {renderDiaryChat(currentUser)}
               </div>
             </div>
           )}
 
           {celebration.show && (
             <div onClick={() => setCelebration(prev => ({ ...prev, show: false }))} className={`fixed inset-0 bg-black/70 flex items-center justify-center z-[110] p-4 backdrop-blur-sm cursor-pointer`}>
-              <div className="relative overflow-hidden pixel-box p-6 md:p-10 w-[90%] max-w-md text-center celebrate-pop border-yellow-400 bg-gray-800 shadow-[0_0_40px_rgba(253,224,71,0.3)]">
+              <div className="relative overflow-hidden mc-panel p-6 w-[90%] max-w-md text-center celebrate-pop border-yellow-400 bg-[#3e2723] shadow-[0_0_50px_rgba(253,224,71,0.4)]">
                 <div className="spin-glow"></div>
                 <div className="relative z-10">
                   {celebration.type === 'perfect' && <div className="text-6xl mb-4 animate-bounce">🌟🌟🌟</div>}
                   {celebration.type === 'countdown' && <div className="text-6xl mb-4 animate-bounce">🔥🏃</div>}
                   {celebration.type === 'milestone' && <div className="text-6xl mb-4 animate-bounce">✨🎉</div>}
-                  <h2 className="text-2xl md:text-3xl text-yellow-300 mb-4 font-bold" style={{textShadow: '2px 2px 0 #000'}}>{celebration.title}</h2>
+                  <h2 className="text-2xl md:text-3xl text-yellow-300 mb-4 font-bold" style={{textShadow: '3px 3px 0 #000'}}>{celebration.title}</h2>
                   <p className="text-lg md:text-xl text-white font-bold leading-relaxed">{celebration.message}</p>
                 </div>
               </div>
             </div>
           )}
           
-          <div className={`w-full max-w-4xl mx-auto flex-1 flex flex-col p-2 md:p-6 pt-10 md:pt-4 pb-24 md:pb-28`}>
-            <div className="pixel-box p-3 md:p-5 mb-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-gray-800 shrink-0">
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="w-14 h-14 bg-blue-900 border-2 border-white flex items-center justify-center font-sans font-bold text-lg md:text-xl shrink-0 shadow-inner">{avatarText}</div>
-                <div className="flex-1"><h2 className="text-lg md:text-xl text-yellow-300 font-bold">{user.name}</h2><p className="text-xs text-gray-300">Lv.{Math.floor(user.points / 10) + 1} | 總累積: {user.points} EXP</p></div>
+          <div className={`flex-1 overflow-y-auto p-2 pb-6 max-w-4xl mx-auto w-full flex flex-col`}>
+            
+            <KnowledgeSign />
+
+            <div className="mc-panel p-3 mb-3 flex flex-row justify-between items-center gap-2 bg-[#2b2b2b] shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-[#00bcd4] border-4 border-[#4dd0e1] border-b-[#006064] border-r-[#006064] flex items-center justify-center font-bold text-lg shrink-0 shadow-inner text-white" style={{textShadow: '2px 2px 0 #006064'}}>{avatarText}</div>
+                <div><h2 className="text-lg text-yellow-300 font-bold" style={{textShadow: '2px 2px 0 #000'}}>{user.name}</h2><p className="text-xs text-[#4dd0e1] font-bold">Lv.{Math.floor(user.points / 10) + 1} | 總 EXP: {user.points}</p></div>
               </div>
-              <div className="flex gap-2 shrink-0 self-end sm:self-auto">
-                <button onClick={() => {setCurrentUser(null); setView('login');}} className="pixel-btn bg-red-600 px-3 py-2 active:bg-red-500 font-bold text-sm">登出</button>
-              </div>
+              <button onClick={() => {setCurrentUser(null); setView('login');}} className="mc-button mc-redstone px-3 py-1 font-bold text-xs shrink-0">登出</button>
             </div>
 
-            <div className="pixel-box p-3 md:p-5 bg-gray-800 flex flex-col flex-1">
-              <h3 className="text-base md:text-lg text-blue-300 mb-4 border-b border-gray-600 pb-2 flex justify-between items-end shrink-0 font-bold">
-                <span>🎴 每日任務卡片牆</span>
-                <span className="text-xs text-gray-400 font-normal hidden sm:inline font-bold">點擊卡片完成 +1 EXP</span>
+            {(user.assessments && user.assessments.length > 0) && (
+              <div className="mc-panel p-3 bg-[#2b2b2b] flex flex-col shrink-0 shadow-xl mb-3 border-yellow-600">
+                <h3 className="text-sm md:text-base text-[#ffb74d] mb-3 border-b-4 border-[#1f1f1f] pb-2 flex justify-between items-end font-bold">
+                  <span>📚 待完成評量</span>
+                  <span className="text-[10px] text-gray-400">完成將獲得高額 EXP</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {user.assessments.map(a => (
+                    <div key={a.id} onClick={() => handleReportAssessment(currentUser, a.id)} className="relative mc-button mc-wood min-h-[70px] p-3 flex flex-col justify-center items-start text-left overflow-hidden">
+                      <div className="flex justify-between w-full items-start mb-1">
+                         <span className="text-base font-bold text-white leading-tight pr-2">{a.title}</span>
+                         <div className="flex flex-col items-end gap-1">
+                           <span className="bg-[#e53935] text-white px-2 py-0.5 border-2 border-[#ffcdd2] text-xs font-bold shrink-0 shadow-sm">剩 {a.count} 次</span>
+                           {(a.reportedCount > 0) && <span className="bg-[#fbc02d] text-[#3e2723] px-2 py-0.5 border-2 border-[#fff59d] text-[10px] font-bold shrink-0 shadow-sm animate-pulse">審核中 x{a.reportedCount}</span>}
+                         </div>
+                      </div>
+                      {a.reason && <div className="text-xs text-yellow-200 font-bold bg-black/40 p-1 w-full border border-[#5c3a18] mt-1 line-clamp-2">{a.reason}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mc-panel p-3 bg-[#2b2b2b] flex flex-col flex-1 shadow-xl">
+              <h3 className="text-sm md:text-base text-[#81c784] mb-3 border-b-4 border-[#1f1f1f] pb-2 flex justify-between items-end shrink-0 font-bold">
+                <span>🎴 日常挑戰</span>
+                <span className="text-[10px] text-gray-400">點擊完成 +1 EXP</span>
               </h3>
               
               {totalCount === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-gray-500 font-bold text-lg">今天沒有任務喔！太棒了！</div>
+                <div className="flex-1 flex items-center justify-center text-gray-500 font-bold text-lg">今天沒有任務！太棒了！</div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 flex-1 items-start content-start overflow-y-auto custom-scrollbar pr-1 pb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 flex-1 items-start content-start">
                   {user.tasks.map(task => (
-                    <div key={task.id} onClick={() => toggleTask(task.id)} className={`relative cursor-pointer border-[3px] p-2 flex flex-col items-center justify-center transition-all duration-200 min-h-[90px] md:min-h-[110px] rounded-lg select-none overflow-hidden ${task.completed ? 'border-green-500 bg-green-900/30 scale-95 opacity-80 shadow-inner' : 'border-gray-500 bg-gray-700 hover:bg-gray-600 shadow-[0_4px_0_rgb(107,114,128)] active:shadow-none active:translate-y-1'}`}>
-                      {task.completed && <div className="absolute inset-0 flex items-center justify-center card-check-anim pointer-events-none"><span className="text-[60px] md:text-[80px] text-green-500">✓</span></div>}
-                      <span className={`relative z-10 text-[15px] md:text-[17px] font-bold text-center leading-snug px-1 ${task.completed ? 'text-gray-400 line-through' : 'text-white'}`}>{task.title}</span>
+                    <div key={task.id} onClick={() => toggleTask(task.id)} className={`relative mc-button min-h-[80px] md:min-h-[100px] flex flex-col items-center justify-center p-2 transition-all duration-100 select-none overflow-hidden ${task.completed ? 'mc-grass scale-95 opacity-80' : 'mc-wood'}`}>
+                      {task.completed && <div className="absolute inset-0 flex items-center justify-center card-check-anim pointer-events-none"><span className="text-[50px] md:text-[70px] text-white opacity-40">✓</span></div>}
+                      <span className={`relative z-10 text-[14px] md:text-[16px] font-bold text-center leading-snug px-1 ${task.completed ? 'text-[#1b5e20]' : 'text-white'}`}>{task.title}</span>
                       {animatingTask === task.id && <div className="exp-float font-bold text-sm">+1 EXP</div>}
                     </div>
                   ))}
@@ -700,25 +1000,25 @@
             </div>
           </div>
 
-          <div className={`fixed bottom-0 left-0 w-full bg-gray-900 border-t-4 border-gray-600 p-2 md:p-4 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.7)]`}>
+          <div className={`shrink-0 bg-[#2b2b2b] border-t-4 border-[#111] p-3 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.8)]`}>
             <div className="max-w-4xl mx-auto flex flex-col gap-2">
               <div className="flex justify-between items-end">
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setShowDiary(true)} className="pixel-btn bg-indigo-700 px-3 py-2 flex items-center gap-1 active:bg-indigo-600 font-bold text-xs md:text-sm relative">
-                    <span className="text-base md:text-lg">📓</span> 交換日記
-                    {hasNewMsg && <span className="absolute -top-1 -right-1 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-gray-900"></span></span>}
+                  <button onClick={() => setShowDiary(true)} className="mc-button mc-diamond px-3 py-1.5 flex items-center gap-1 font-bold text-xs md:text-sm relative">
+                    <span className="text-base">📓</span> 信箱
+                    {hasNewMsg && <span className="absolute -top-1 -right-1 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-[#e53935] border-2 border-[#111]"></span></span>}
                   </button>
-                  <button onClick={() => setShowCalendar(true)} className="pixel-btn bg-green-700 px-3 py-2 flex items-center gap-1 active:bg-green-600 font-bold text-xs md:text-sm">
-                    <span className="text-base md:text-lg">📅</span> 打卡日曆
+                  <button onClick={() => setShowCalendar(true)} className="mc-button mc-wood px-3 py-1.5 flex items-center gap-1 font-bold text-xs md:text-sm">
+                    <span className="text-base">📅</span> 日曆
                   </button>
                 </div>
                 <div className="text-right">
-                  <div className="text-yellow-300 font-bold text-xs md:text-sm mb-1 tracking-widest">{currentTime.toLocaleDateString('zh-TW')} {currentTime.toLocaleTimeString('zh-TW', { hour12: false })}</div>
-                  <div className="text-blue-300 bg-blue-900/50 px-2 py-1 rounded text-xs md:text-sm font-bold inline-block">完成：{completedCount} / {totalCount} ({progressPercent}%)</div>
+                  <div className="text-yellow-300 font-bold text-xs md:text-sm mb-1 tracking-widest" style={{textShadow: '2px 2px 0 #000'}}>{new Date(currentTime).toLocaleTimeString('zh-TW', { hour12: false })}</div>
+                  <div className="text-[#81c784] bg-[#111] px-2 py-0.5 border-2 border-[#555] text-xs font-bold inline-block shadow-inner">進度: {completedCount}/{totalCount}</div>
                 </div>
               </div>
-              <div className="w-full h-3 md:h-4 border-2 border-white bg-black rounded-sm overflow-hidden relative">
-                <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
+              <div className="w-full h-4 border-4 border-[#555] border-b-[#aaa] border-r-[#aaa] bg-[#111] overflow-hidden relative shadow-inner">
+                <div className="h-full bg-[#4caf50] border-t-2 border-[#81c784] transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
               </div>
             </div>
           </div>
@@ -731,5 +1031,3 @@
   </script>
 </body>
 </html>
-
-
