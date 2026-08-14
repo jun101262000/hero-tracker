@@ -43,6 +43,7 @@
     .mc-gold { background-color: #fbc02d; border-top-color: #fff59d; border-left-color: #fff59d; border-bottom-color: #f57f17; border-right-color: #f57f17; color: #3e2723; text-shadow: none; }
     .mc-obsidian { background-color: #212121; border-top-color: #424242; border-left-color: #424242; border-bottom-color: #000; border-right-color: #000; }
     
+    /* 告示牌材質 */
     .mc-sign { background-color: #d7b57b; border: 4px solid; border-top-color: #ebd197; border-left-color: #ebd197; border-bottom-color: #8f6736; border-right-color: #8f6736; color: #3e2723; }
 
     .mc-input {
@@ -63,6 +64,23 @@
     .custom-scrollbar::-webkit-scrollbar { width: 8px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #111; border: 1px solid #555; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border: 1px solid #fff; }
+
+    /* 跑馬燈動畫 CSS */
+    .marquee-container {
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+      width: 100%;
+    }
+    .marquee-content {
+      display: inline-block;
+      padding-left: 100%;
+      animation: marquee 20s linear infinite;
+    }
+    @keyframes marquee {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(-100%, 0); }
+    }
   </style>
 </head>
 <body>
@@ -131,13 +149,13 @@
     const DEFAULT_USERS_DATA = {
       player1: { name: '勇者 Oscar', pin: '6767', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }], assessments: [] },
       player2: { name: '勇者 Roy', pin: '1367', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }], assessments: [] },
-      changelog: [{ date: '最新更新', version: 'v.20260829', changes: ['🤴 新增「國王」管理員角色！與村長共同管理村莊。', '🔑 輸入專屬密碼，系統會自動判斷您是「村長」還是「國王」。']} ], adminPin: '9999', admin2Pin: '8888'
+      changelog: [{ date: '最新更新', version: 'v.20260830', changes: ['📜 每日知識改為單行跑馬燈設計，釋放更多螢幕空間！']} ], adminPin: '9999', admin2Pin: '8888'
     };
 
     function App() {
       const [userAuth, setUserAuth] = useState(null);
       const [usersData, setUsersData] = useState(null);
-      const [currentUser, setCurrentUser] = useState(null); // 'player1', 'player2', 'admin' (村長), 'admin2' (守護者)
+      const [currentUser, setCurrentUser] = useState(null); // 'player1', 'player2', 'admin' (村長), 'admin2' (國王)
       const [view, setView] = useState('login'); 
       const [pinInput, setPinInput] = useState('');
       const [targetLogin, setTargetLogin] = useState(null);
@@ -202,7 +220,7 @@
               if (data.player1 && data.player1.pin === '1111') { data.player1.pin = '6767'; needsPatch = true; }
               if (data.player2 && data.player2.pin === '2222') { data.player2.pin = '1367'; needsPatch = true; }
               if (!data.adminPin) { data.adminPin = '9999'; needsPatch = true; }
-              if (!data.admin2Pin) { data.admin2Pin = '8888'; needsPatch = true; } // 新增守護者密碼補丁
+              if (!data.admin2Pin) { data.admin2Pin = '8888'; needsPatch = true; }
               if (!data.player1.diary) { data.player1.diary = []; needsPatch = true; }
               if (!data.player2.diary) { data.player2.diary = []; needsPatch = true; }
               
@@ -511,11 +529,17 @@
         }
       };
 
+      // 📖 壓縮為單行跑馬燈版本的告示牌
       const KnowledgeSign = () => (
-        <div className="mc-sign p-3 mb-4 shadow-lg text-center flex flex-col items-center justify-center shrink-0">
-           <div className="text-xs font-bold text-[#5c3a18] mb-1">【本日{todayKnowledge.tag}】</div>
-           <div className="text-sm md:text-base font-bold mb-1">{todayKnowledge.title}</div>
-           <div className="text-xs md:text-sm font-bold opacity-90">{todayKnowledge.content}</div>
+        <div className="mc-sign p-1 mb-3 shadow-sm flex items-center shrink-0 border-2" style={{ height: '36px' }}>
+          <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner z-10">
+            本日{todayKnowledge.tag}
+          </div>
+          <div className="marquee-container flex-1 ml-2">
+            <div className="marquee-content text-xs md:text-sm font-bold text-[#3e2723]">
+              [{todayKnowledge.title}] {todayKnowledge.content}
+            </div>
+          </div>
         </div>
       );
 
@@ -1000,7 +1024,7 @@
             </div>
           </div>
 
-          <div className={`shrink-0 bg-[#2b2b2b] border-t-4 border-[#111] p-3 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.8)]`}>
+          <div className={`shrink-0 bg-[#2b2b2b] border-t-4 border-[#1f1f1f] p-3 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.8)]`}>
             <div className="max-w-4xl mx-auto flex flex-col gap-2">
               <div className="flex justify-between items-end">
                 <div className="flex items-center gap-2">
