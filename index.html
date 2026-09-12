@@ -9,10 +9,6 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
@@ -98,19 +94,26 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDQnmb2kFxQyrm_XTT1BSJOnlsILZR_puY",
-      authDomain: "herotracker-55dae.firebaseapp.com",
-      projectId: "herotracker-55dae",
-      storageBucket: "herotracker-55dae.firebasestorage.app",
-      messagingSenderId: "548324823192",
-      appId: "1:548324823192:web:fe957568df8fe708e880ed"
-    };
+    // ==========================================
+    // 🌟 Google Apps Script (GAS) 網址設定處
+    // 請將您從 Google 試算表「部署為網頁應用程式」取得的 URL 貼在下方：
+    // ==========================================
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyxyLJou8ImyKOU3FfjiBn8oRJl4L0G_n7lVgFIUS_DbXeHY2TK-ziFQv_lJkiXdpur0w/exec";
 
-    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const appId = 'my-hero-tracker-family-app'; 
+    // API 呼叫工具
+    async function apiGet(action = 'initData') {
+      const res = await fetch(`${GAS_API_URL}?action=${action}`);
+      return await res.json();
+    }
+
+    async function apiPost(payload) {
+      const res = await fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    }
 
     const SYSTEM_VERSION = `v.${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}`;
     const TODAY_STR = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
@@ -132,28 +135,7 @@
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
     const todayKnowledge = DAILY_KNOWLEDGE[dayOfYear % DAILY_KNOWLEDGE.length];
 
-    const INITIAL_COMMON_TASKS = [
-      { id: 't4', title: '暑假作業(簽名)', freqType: 'daily' }, { id: 't5', title: '英文作業(簽名)', freqType: 'daily' },
-      { id: 't6', title: '念句子', freqType: 'daily' }, { id: 't7', title: '背單字', freqType: 'daily' },
-      { id: 't8', title: '看書 2 本', freqType: 'daily' }, { id: 't1', title: '整理書桌', freqType: 'daily' },
-      { id: 't9', title: '洗碗', freqType: 'daily' }, { id: 't10', title: '洗餐盒', freqType: 'daily' },
-      { id: 't12', title: '收餐盒', freqType: 'daily' }, { id: 't13', title: '洗水壺', freqType: 'daily' },
-      { id: 't14', title: '裝水', freqType: 'daily' }, { id: 't3', title: '收衣服', freqType: 'daily' },
-      { id: 't2', title: '書包歸位', freqType: 'daily' }, { id: 't11', title: '洗澡(晾毛巾刷牙)', freqType: 'daily' },
-      { id: 't15', title: '明天的服裝', freqType: 'daily' }, { id: 't16', title: '明天的用品', freqType: 'daily' }
-    ];
-
-    const OSCAR_TASKS = [...INITIAL_COMMON_TASKS.map(t => ({...t, createdAt: NOW})), { id: 't_zinc', title: '吃鋅片', freqType: 'interval', freqValue: 2, createdAt: NOW }];
-    const ROY_TASKS = INITIAL_COMMON_TASKS.map(t => ({...t, createdAt: NOW}));
-
-    const DEFAULT_USERS_DATA = {
-      player1: { name: '勇者 Oscar', pin: '6767', points: 0, personalTasks: OSCAR_TASKS, tasks: OSCAR_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm1', sender: 'admin', text: 'Oscar你好！這是交換日記，有話都可以寫給村長！', timestamp: NOW - 86400000 }], assessments: [] },
-      player2: { name: '勇者 Roy', pin: '1367', points: 0, personalTasks: ROY_TASKS, tasks: ROY_TASKS.map(t => ({ id: t.id, title: t.title, completed: false })), history: {}, dailyRecords: {}, diary: [{ id: 'm2', sender: 'admin', text: 'Roy你好！任務有問題隨時留言給我喔！', timestamp: NOW - 86400000 }], assessments: [] },
-      changelog: [{ date: '最新更新', version: 'v.20260830', changes: ['📜 每日知識改為單行跑馬燈設計，釋放更多螢幕空間！']} ], adminPin: '9999', admin2Pin: '8888'
-    };
-
     function App() {
-      const [userAuth, setUserAuth] = useState(null);
       const [usersData, setUsersData] = useState(null);
       const [currentUser, setCurrentUser] = useState(null); // 'player1', 'player2', 'admin' (村長), 'admin2' (國王)
       const [view, setView] = useState('login'); 
@@ -168,6 +150,10 @@
       const [showDiary, setShowDiary] = useState(false);
       const [showChangelog, setShowChangelog] = useState(false);
       const [calMonthOffset, setCalMonthOffset] = useState(0); 
+      const [showAdminCalendar, setShowAdminCalendar] = useState(false);
+      const [adminCalPlayer, setAdminCalPlayer] = useState('player1');
+      const [adminCalMonthOffset, setAdminCalMonthOffset] = useState(0);
+      const [editingDayRecord, setEditingDayRecord] = useState(null);
       const [celebration, setCelebration] = useState({ show: false, title: '', message: '', type: '' });
       const [adminTab, setAdminTab] = useState('overview'); 
       const [adminTargetPlayer, setAdminTargetPlayer] = useState('player1');
@@ -192,80 +178,68 @@
         return () => clearInterval(timer);
       }, []);
 
-      useEffect(() => {
-        auth.signInAnonymously().catch(e => {
-          setFatalError(`【驗證登入失敗】\n請回 Firebase 開啟「匿名登入 (Anonymous)」。`);
+      // 載入 Google 試算表初次資料
+      const loadInitialData = async () => {
+        if (!GAS_API_URL || GAS_API_URL.includes("AKfycbwYOUR_SCRIPT_ID")) {
+          setFatalError(
+            `【尚未設定 GAS 應用程式網址】\n` +
+            `1. 請在試算表開啟「擴充功能」->「Apps Script」\n` +
+            `2. 貼上 Code.gs 內容並點擊「部署」->「新增部署作業」\n` +
+            `3. 選擇「網頁應用程式」，將存取權限設為「任何人 (Anyone)」\n` +
+            `4. 複製產生的網址，填入 index.html 頂部的 GAS_API_URL！`
+          );
           setLoading(false);
-        });
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-          if (user) { setUserAuth(user); } else { auth.signInAnonymously().catch(e=>console.log(e)); }
-        });
-        return () => unsubscribe();
+          return;
+        }
+
+        try {
+          const res = await apiGet('initData');
+          if (res && res.success && res.data) {
+            setUsersData(res.data);
+            setEditSettings({
+              player1: { name: res.data.player1.name, pin: res.data.player1.pin },
+              player2: { name: res.data.player2.name, pin: res.data.player2.pin }
+            });
+            setEditAdminPin(res.data.adminPin || '9999');
+            setEditAdmin2Pin(res.data.admin2Pin || '8888');
+            setLoading(false);
+          } else {
+            setFatalError(`【資料載入失敗】\n${res?.error || '無法讀取 Google 試算表資料，請確認試算表是否有權限'}`);
+            setLoading(false);
+          }
+        } catch (err) {
+          setFatalError(`【連線失敗】\n無法連線至 Google Apps Script！\n請確認：\n1. 部署時「誰可以存取」是否已選擇「任何人 (Anyone)」\n2. 網址是否正確\n\n錯誤詳情：${err.message}`);
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        loadInitialData();
       }, []);
 
-      const getSharedDataRef = () => db.collection('artifacts').doc(appId).collection('public').doc('data').collection('family_gamedata').doc('main');
-
+      // 交換日記輕量輪詢：開啟信箱時每 5 秒更新，平時每 35 秒檢查一次
       useEffect(() => {
-        if (!userAuth) return;
-        const sharedDataRef = getSharedDataRef();
-        
-        const setupData = async () => {
+        if (!usersData || !GAS_API_URL || GAS_API_URL.includes("AKfycbwYOUR_SCRIPT_ID")) return;
+        const intervalTime = (showDiary || adminTab === 'diary') ? 5000 : 35000;
+        const timer = setInterval(async () => {
           try {
-            const docSnap = await sharedDataRef.get();
-            if (!docSnap.exists) {
-              await sharedDataRef.set(DEFAULT_USERS_DATA);
-            } else {
-              const data = docSnap.data();
-              let needsPatch = false;
-              if (data.player1 && data.player1.pin === '1111') { data.player1.pin = '6767'; needsPatch = true; }
-              if (data.player2 && data.player2.pin === '2222') { data.player2.pin = '1367'; needsPatch = true; }
-              if (!data.adminPin) { data.adminPin = '9999'; needsPatch = true; }
-              if (!data.admin2Pin) { data.admin2Pin = '8888'; needsPatch = true; }
-              if (!data.player1.diary) { data.player1.diary = []; needsPatch = true; }
-              if (!data.player2.diary) { data.player2.diary = []; needsPatch = true; }
-              
-              ['player1', 'player2'].forEach(uid => {
-                if (!data[uid].assessments) { 
-                  data[uid].assessments = []; 
-                  needsPatch = true; 
-                } else {
-                  data[uid].assessments.forEach(a => {
-                    if (a.reportedCount === undefined) {
-                      a.reportedCount = 0;
-                      needsPatch = true;
-                    }
-                  });
-                }
+            const res = await apiGet('getDiary');
+            if (res && res.success && res.data) {
+              setUsersData(prev => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  player1: { ...prev.player1, diary: res.data.player1 || prev.player1.diary },
+                  player2: { ...prev.player2, diary: res.data.player2 || prev.player2.diary }
+                };
               });
-
-              if (needsPatch) await sharedDataRef.update(data);
             }
-          } catch(e) {
-            setFatalError(`【資料庫連線失敗】\n請確定 Firestore Rules 裡的 false 已經改成 true！`);
-            setLoading(false);
+          } catch (e) {
+            // 背景輕量輪詢失敗靜默處理
           }
-        };
-        setupData();
-
-        const unsubscribe = sharedDataRef.onSnapshot(docSnap => {
-          if (docSnap.exists) {
-            const data = docSnap.data();
-            if(data.player1 && data.player2) {
-               setUsersData(data);
-               setEditSettings({ player1: { name: data.player1.name, pin: data.player1.pin }, player2: { name: data.player2.name, pin: data.player2.pin } });
-               setEditAdminPin(data.adminPin || '9999');
-               setEditAdmin2Pin(data.admin2Pin || '8888');
-            }
-            setLoading(false);
-          }
-        });
-        return () => unsubscribe();
-      }, [userAuth]);
-
-      const updateCloudData = async (newData) => {
-        if (!userAuth) return;
-        try { await getSharedDataRef().update(newData); } catch (e) { alertTip(`存檔失敗：${e.message}`); }
-      };
+        }, intervalTime);
+        return () => clearInterval(timer);
+      }, [showDiary, adminTab, usersData !== null]);
 
       useEffect(() => {
         if (showDiary || adminTab === 'diary') {
@@ -280,11 +254,11 @@
         }
       }, [celebration.show]);
 
+      // PIN 碼比對登入
       useEffect(() => {
         if (pinInput.length === 4 && usersData) {
           let isError = false;
           if (targetLogin === 'admin') { 
-            // 雙管理員密碼判斷
             if (pinInput === usersData.adminPin) { setCurrentUser('admin'); setView('admin'); } 
             else if (pinInput === usersData.admin2Pin) { setCurrentUser('admin2'); setView('admin'); }
             else { isError = true; }
@@ -300,43 +274,60 @@
 
       const handleNumClick = (num) => { if (pinInput.length < 4) setPinInput(prev => prev + num); };
 
-      const shouldTaskAppear = (task, dateObj) => {
-        if (task.freqType === 'daily' || task.freqType === 'once') return true;
-        if (task.freqType === 'weekly') return task.freqValue.includes(dateObj.getDay());
-        if (task.freqType === 'interval') return getDaysDiff(new Date(task.createdAt), dateObj) % task.freqValue === 0;
-        return true;
-      };
-
+      // 手動換日
       const resetDay = () => {
         setConfirmDialog({
-          message: '確定要結束今天，重置並產生明天的任務嗎？',
-          onConfirm: () => {
-            const nextData = { ...usersData };
-            const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-            ['player1', 'player2'].forEach(uid => {
-              const user = nextData[uid];
-              const nextHistory = { ...user.history };
-              const completedCount = user.tasks.filter(t => t.completed).length;
-              user.tasks.forEach(t => {
-                if (!nextHistory[t.id]) nextHistory[t.id] = { consecutive: 0, missed: 0 };
-                if (t.completed) { nextHistory[t.id].consecutive += 1; nextHistory[t.id].missed = 0; } else { nextHistory[t.id].consecutive = 0; nextHistory[t.id].missed += 1; }
-              });
-              const newDailyRecords = { ...user.dailyRecords };
-              newDailyRecords[TODAY_STR] = { c: completedCount, t: user.tasks.length };
-              const newPersonalTasks = user.personalTasks.filter(pt => {
-                if (pt.freqType === 'once') { const activeT = user.tasks.find(t => t.id === pt.id); if (activeT && activeT.completed) return false; }
-                return true;
-              });
-              const nextActiveTasks = [];
-              newPersonalTasks.forEach(pt => { if (shouldTaskAppear(pt, tomorrow)) nextActiveTasks.push({ id: pt.id, title: pt.title, completed: false }); });
-              nextData[uid] = { ...user, history: nextHistory, dailyRecords: newDailyRecords, personalTasks: newPersonalTasks, tasks: nextActiveTasks };
-            });
-            setUsersData(nextData); updateCloudData(nextData); alertTip('明天任務產生完成！'); setConfirmDialog(null);
+          message: '確定要結束今天，結算並產生明天的任務嗎？',
+          onConfirm: async () => {
+            alertTip('⏳ 正在結算資料並寫入試算表...');
+            setConfirmDialog(null);
+            try {
+              const res = await apiPost({ action: 'manualResetDay' });
+              if (res && res.success) {
+                const refreshed = await apiGet('initData');
+                if (refreshed && refreshed.success && refreshed.data) {
+                  setUsersData(refreshed.data);
+                  alertTip('✅ 明天任務產生完成！');
+                }
+              } else {
+                alertTip(`換日失敗：${res?.error || '未知錯誤'}`);
+              }
+            } catch (e) {
+              alertTip(`換日失敗：${e.message}`);
+            }
           },
           onCancel: () => setConfirmDialog(null)
         });
       };
 
+      // 管理員補登/修正歷史打卡紀錄
+      const saveDayRecord = (uid, dateStr, newC, newT) => {
+        const c = Math.max(0, parseInt(newC) || 0);
+        const t = Math.max(1, parseInt(newT) || 1);
+        const validatedC = Math.min(c, t);
+        
+        const newData = { ...usersData };
+        if (!newData[uid].dailyRecords) newData[uid].dailyRecords = {};
+        newData[uid].dailyRecords[dateStr] = { c: validatedC, t };
+        setUsersData(newData);
+        setEditingDayRecord(null);
+
+        apiPost({
+          action: 'updateHistoryRecord',
+          uid: uid,
+          dateStr: dateStr,
+          completedCount: validatedC,
+          totalCount: t
+        }).then(res => {
+          if (res && res.success) {
+            alertTip(`✅ 已更新 ${dateStr} 的打卡紀錄！`);
+          } else {
+            alertTip(`更新失敗：${res?.error || '未知錯誤'}`);
+          }
+        }).catch(e => alertTip(`更新出錯：${e.message}`));
+      };
+
+      // 勇者打卡切換（樂觀更新 + 背景排隊鎖存檔）
       const toggleTask = (taskId) => {
         if (!usersData || !currentUser || celebration.show) return;
         const user = usersData[currentUser];
@@ -357,10 +348,21 @@
         }
         
         const pointsDiff = isCompleting ? 1 : -1;
-        const newData = { ...usersData, [currentUser]: { ...user, tasks: newTasks, points: Math.max(0, user.points + pointsDiff) } };
-        setUsersData(newData); updateCloudData(newData);
+        const newPoints = Math.max(0, user.points + pointsDiff);
+        const newData = { ...usersData, [currentUser]: { ...user, tasks: newTasks, points: newPoints } };
+        setUsersData(newData);
+
+        // 背景存檔至 GAS
+        apiPost({
+          action: 'toggleTask',
+          uid: currentUser,
+          taskId: taskId,
+          completed: isCompleting,
+          pointsDiff: pointsDiff
+        }).catch(err => alertTip(`存檔提醒：${err.message}`));
       };
 
+      // 管理處補蓋章
       const adminToggleTask = (uid, taskId) => {
         if (!usersData) return;
         const user = usersData[uid];
@@ -371,63 +373,96 @@
         const newTasks = [...user.tasks];
         newTasks[taskIndex] = { ...task, completed: isCompleting };
         const pointsDiff = isCompleting ? 1 : -1;
-        const newData = { ...usersData, [uid]: { ...user, tasks: newTasks, points: Math.max(0, user.points + pointsDiff) } };
-        setUsersData(newData); updateCloudData(newData);
+        const newPoints = Math.max(0, user.points + pointsDiff);
+        const newData = { ...usersData, [uid]: { ...user, tasks: newTasks, points: newPoints } };
+        setUsersData(newData);
+        
+        apiPost({
+          action: 'toggleTask',
+          uid: uid,
+          taskId: taskId,
+          completed: isCompleting,
+          pointsDiff: pointsDiff
+        }).catch(err => alertTip(`補蓋存檔失敗：${err.message}`));
+
         alertTip(`🛠️ 已${isCompleting ? '補蓋' : '取消'}「${task.title}」`);
       };
 
+      // 發送交換日記留言
       const handleSendDiary = (senderId, targetUid) => {
         if (!diaryInput.trim()) return;
         const uid = targetUid || currentUser;
         if (!uid) return;
-        const newMessage = { id: Date.now().toString(), sender: senderId, text: diaryInput.trim(), timestamp: Date.now() };
+        const text = diaryInput.trim();
+        const tempId = 'temp_' + Date.now();
+        const now = Date.now();
+        const newMessage = { id: tempId, sender: senderId, text: text, timestamp: now };
         const currentDiary = usersData[uid]?.diary || [];
         const newData = { ...usersData, [uid]: { ...usersData[uid], diary: [...currentDiary, newMessage] } };
-        setUsersData(newData); updateCloudData(newData); setDiaryInput('');
+        setUsersData(newData);
+        setDiaryInput('');
         setTimeout(() => { diaryEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100);
+
+        apiPost({
+          action: 'sendDiary',
+          uid: uid,
+          sender: senderId,
+          text: text
+        }).then(res => {
+          if (res && res.success && res.message) {
+            setUsersData(prev => {
+              if (!prev) return prev;
+              const updated = (prev[uid]?.diary || []).map(m => m.id === tempId ? res.message : m);
+              return { ...prev, [uid]: { ...prev[uid], diary: updated } };
+            });
+          }
+        }).catch(err => alertTip(`留言送出失敗：${err.message}`));
       };
 
+      // 自由刪除留言（隨時自由刪除任意留言，不再有 5 分鐘限制）
       const deleteDiaryMsg = (uid, msgId) => {
         const msg = usersData[uid].diary.find(m => m.id === msgId);
         if (!msg) return;
-        if (Date.now() - msg.timestamp > 300000) return alertTip('⚠️ 只能撤回 5 分鐘內送出的留言喔！');
 
         setConfirmDialog({
-          message: '確定要撤回這條留言嗎？',
+          message: '確定要刪除這條留言嗎？',
           onConfirm: () => {
             const newDiary = usersData[uid].diary.filter(m => m.id !== msgId);
             const newData = { ...usersData, [uid]: { ...usersData[uid], diary: newDiary } };
-            setUsersData(newData); updateCloudData(newData); setConfirmDialog(null); alertTip('🗑️ 留言已撤回');
+            setUsersData(newData);
+            apiPost({ action: 'deleteDiary', uid, msgId }).catch(e => console.error(e));
+            setConfirmDialog(null);
+            alertTip('🗑️ 留言已刪除');
           },
           onCancel: () => setConfirmDialog(null)
         });
       };
 
+      // 派發新常駐任務
       const handleAddPersonalTask = () => {
         if (!newTaskForm.title.trim()) return alertTip('請輸入任務名稱');
         const targetUids = taskTargetMode === 'both' ? ['player1', 'player2'] : [taskTargetMode];
-        let newData = { ...usersData };
+        if (newTaskForm.freqType === 'weekly' && newTaskForm.freqWeekly.length === 0) {
+          return alertTip('請至少勾選一天');
+        }
 
-        targetUids.forEach(uid => {
-          const newTask = { id: `pt_${Date.now()}_${uid}`, title: newTaskForm.title.trim(), freqType: newTaskForm.freqType, createdAt: Date.now() };
-          if (newTaskForm.freqType === 'interval') newTask.freqValue = parseInt(newTaskForm.freqValue) || 2;
-          if (newTaskForm.freqType === 'weekly') {
-            if (newTaskForm.freqWeekly.length === 0) { alertTip('請至少勾選一天'); return; }
-            newTask.freqValue = newTaskForm.freqWeekly;
-          }
-          const newPersonalTasks = [...newData[uid].personalTasks, newTask];
-          const newActiveTasks = [...newData[uid].tasks];
-          if (shouldTaskAppear(newTask, new Date())) newActiveTasks.push({ id: newTask.id, title: newTask.title, completed: false });
-          newData = { ...newData, [uid]: { ...newData[uid], personalTasks: newPersonalTasks, tasks: newActiveTasks } };
-        });
+        const payload = {
+          action: 'addPersonalTask',
+          uids: targetUids,
+          title: newTaskForm.title.trim(),
+          freqType: newTaskForm.freqType,
+          freqValue: newTaskForm.freqType === 'weekly' ? newTaskForm.freqWeekly.join(',') : (parseInt(newTaskForm.freqValue) || 1)
+        };
 
-        if(newTaskForm.freqType === 'weekly' && newTaskForm.freqWeekly.length === 0) return;
-
-        setUsersData(newData); updateCloudData(newData);
-        setNewTaskForm({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] }); 
-        alertTip(taskTargetMode === 'both' ? '✅ 已同時加入兩人的任務！' : '✅ 新任務已加入！');
+        apiPost(payload).then(async () => {
+          const refreshed = await apiGet('initData');
+          if (refreshed && refreshed.success && refreshed.data) setUsersData(refreshed.data);
+          setNewTaskForm({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] }); 
+          alertTip(taskTargetMode === 'both' ? '✅ 已同時加入兩人的任務！' : '✅ 新任務已加入！');
+        }).catch(e => alertTip(`新增任務失敗：${e.message}`));
       };
 
+      // 刪除常駐任務
       const handleDeletePersonalTask = (uid, taskId) => {
         setConfirmDialog({
           message: '確定要刪除這個任務嗎？',
@@ -435,48 +470,54 @@
             const newData = { ...usersData };
             newData[uid].personalTasks = newData[uid].personalTasks.filter(t => t.id !== taskId);
             newData[uid].tasks = newData[uid].tasks.filter(t => t.id !== taskId);
-            setUsersData(newData); updateCloudData(newData); setConfirmDialog(null); alertTip('🗑️ 任務已刪除');
+            setUsersData(newData);
+            apiPost({ action: 'deletePersonalTask', uid, taskId }).catch(e => alertTip(`刪除失敗：${e.message}`));
+            setConfirmDialog(null);
+            alertTip('🗑️ 任務已刪除');
           },
           onCancel: () => setConfirmDialog(null)
         });
       };
 
+      // 派發新評量
       const handleAddAssessment = () => {
         if (!newAssessmentForm.title.trim()) return alertTip('請輸入評量名稱！');
         if (newAssessmentForm.count < 1) return alertTip('評量數量必須大於 0！');
 
         const targetUids = assessmentTargetMode === 'both' ? ['player1', 'player2'] : [assessmentTargetMode];
-        let newData = { ...usersData };
+        const payload = {
+          action: 'addAssessment',
+          uids: targetUids,
+          title: newAssessmentForm.title.trim(),
+          reason: newAssessmentForm.reason.trim(),
+          count: parseInt(newAssessmentForm.count)
+        };
 
-        targetUids.forEach(uid => {
-          const newAss = { 
-            id: `a_${Date.now()}_${uid}`, 
-            title: newAssessmentForm.title.trim(), 
-            reason: newAssessmentForm.reason.trim(), 
-            count: parseInt(newAssessmentForm.count),
-            reportedCount: 0,
-            createdAt: Date.now() 
-          };
-          newData = { ...newData, [uid]: { ...newData[uid], assessments: [...(newData[uid].assessments || []), newAss] } };
-        });
-
-        setUsersData(newData); updateCloudData(newData);
-        setNewAssessmentForm({ title: '', reason: '', count: 1 });
-        alertTip(assessmentTargetMode === 'both' ? '📚 已派發評量給兩位勇者！' : '📚 評量已派發！');
+        apiPost(payload).then(async () => {
+          const refreshed = await apiGet('initData');
+          if (refreshed && refreshed.success && refreshed.data) setUsersData(refreshed.data);
+          setNewAssessmentForm({ title: '', reason: '', count: 1 });
+          alertTip(assessmentTargetMode === 'both' ? '📚 已派發評量給兩位勇者！' : '📚 評量已派發！');
+        }).catch(e => alertTip(`派發失敗：${e.message}`));
       };
 
+      // 刪除評量
       const handleDeleteAssessment = (uid, assId) => {
         setConfirmDialog({
           message: '確定要直接刪除這個評量嗎？',
           onConfirm: () => {
             const newData = { ...usersData };
             newData[uid].assessments = (newData[uid].assessments || []).filter(a => a.id !== assId);
-            setUsersData(newData); updateCloudData(newData); setConfirmDialog(null); alertTip('🗑️ 評量已刪除');
+            setUsersData(newData);
+            apiPost({ action: 'deleteAssessment', assId }).catch(e => alertTip(`刪除失敗：${e.message}`));
+            setConfirmDialog(null);
+            alertTip('🗑️ 評量已刪除');
           },
           onCancel: () => setConfirmDialog(null)
         });
       };
 
+      // 勇者回報評量
       const handleReportAssessment = (uid, assId) => {
         if (!usersData || celebration.show) return;
         const user = usersData[uid];
@@ -493,7 +534,8 @@
             const newData = { ...usersData };
             const targetAss = newData[uid].assessments.find(a => a.id === assId);
             targetAss.reportedCount = (targetAss.reportedCount || 0) + 1;
-            setUsersData(newData); updateCloudData(newData);
+            setUsersData(newData);
+            apiPost({ action: 'reportAssessment', assId }).catch(e => alertTip(`回報失敗：${e.message}`));
             setConfirmDialog(null);
             alertTip('📩 已送出回報，等待確認！');
           },
@@ -501,47 +543,77 @@
         });
       };
 
+      // 管理處認可評量
       const approveAssessmentReport = (uid, assId) => {
         const newData = { ...usersData };
         const user = newData[uid];
         const idx = user.assessments.findIndex(a => a.id === assId);
         if (idx > -1) {
-          user.assessments[idx].reportedCount -= 1;
+          user.assessments[idx].reportedCount = Math.max(0, user.assessments[idx].reportedCount - 1);
           user.assessments[idx].count -= 1;
           user.points += 3;
-          
           if (user.assessments[idx].count <= 0) {
             user.assessments.splice(idx, 1);
           }
-          setUsersData(newData); updateCloudData(newData);
+          setUsersData(newData);
+          apiPost({ action: 'approveAssessment', uid, assId }).catch(e => alertTip(`認可失敗：${e.message}`));
           alertTip('✅ 已確認完成，發放 +3 EXP！');
         }
       };
 
+      // 管理處退回評量
       const rejectAssessmentReport = (uid, assId) => {
         const newData = { ...usersData };
         const user = newData[uid];
         const idx = user.assessments.findIndex(a => a.id === assId);
         if (idx > -1) {
-          user.assessments[idx].reportedCount -= 1;
-          setUsersData(newData); updateCloudData(newData);
+          user.assessments[idx].reportedCount = Math.max(0, user.assessments[idx].reportedCount - 1);
+          setUsersData(newData);
+          apiPost({ action: 'rejectAssessment', assId }).catch(e => alertTip(`退回失敗：${e.message}`));
           alertTip('❌ 已退回該次回報');
         }
       };
 
-      // 📖 壓縮為單行跑馬燈版本的告示牌
-      const KnowledgeSign = () => (
-        <div className="mc-sign p-1 mb-3 shadow-sm flex items-center shrink-0 border-2" style={{ height: '36px' }}>
-          <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner z-10">
-            本日{todayKnowledge.tag}
-          </div>
-          <div className="marquee-container flex-1 ml-2">
-            <div className="marquee-content text-xs md:text-sm font-bold text-[#3e2723]">
-              [{todayKnowledge.title}] {todayKnowledge.content}
+      // 跑馬燈告示牌：支援多則公告連續循環不間斷滾動
+      const KnowledgeSign = () => {
+        const marqueeList = (usersData && usersData.marquee && usersData.marquee.length > 0)
+          ? usersData.marquee
+          : [];
+
+        let badgeTag = '本日' + todayKnowledge.tag;
+        let scrollText = `[${todayKnowledge.title}] ${todayKnowledge.content}`;
+
+        if (marqueeList.length === 1) {
+          badgeTag = '本日' + (marqueeList[0].tag || '公告');
+          scrollText = `[${marqueeList[0].title}] ${marqueeList[0].content}`;
+        } else if (marqueeList.length > 1) {
+          const allSameTag = marqueeList.every(m => m.tag === marqueeList[0].tag);
+          badgeTag = allSameTag ? `本日${marqueeList[0].tag}` : '勇者快報';
+          // 將多則公告串接在一起，用可愛的符號 ✦ 間隔連續播放
+          scrollText = marqueeList
+            .map(m => `【${m.tag || '公告'}】[${m.title}] ${m.content}`)
+            .join('   ✦   ');
+        }
+
+        // 依據字數長度動態計算秒數，字多時自動加長滾動時間，讓小朋友看得清楚
+        const animDuration = Math.max(18, Math.round(scrollText.length * 0.32));
+
+        return (
+          <div className="mc-sign p-1 mb-3 shadow-sm flex items-center shrink-0 border-2" style={{ height: '36px' }}>
+            <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner z-10">
+              {badgeTag}
+            </div>
+            <div className="marquee-container flex-1 ml-2">
+              <div 
+                className="marquee-content text-xs md:text-sm font-bold text-[#3e2723]" 
+                style={{ animationDuration: `${animDuration}s` }}
+              >
+                {scrollText}
+              </div>
             </div>
           </div>
-        </div>
-      );
+        );
+      };
 
       const TopBar = () => (
         <div className="absolute top-2 left-2 md:top-4 md:left-4 flex items-center gap-3 z-10">
@@ -550,6 +622,7 @@
         </div>
       );
 
+      // 聊天室/交換日記渲染
       const renderDiaryChat = (uid) => {
         const msgs = usersData[uid]?.diary || [];
         return (
@@ -558,9 +631,10 @@
               {msgs.length === 0 && <p className="text-gray-500 text-center text-sm mt-10">目前還沒有留言喔，寫點東西吧！</p>}
               {msgs.map(m => {
                 const isMe = m.sender === currentUser;
-                const canDelete = isMe && (currentTime - m.timestamp <= 300000); 
+                const isAdmin = currentUser === 'admin' || currentUser === 'admin2';
+                // 自由刪除：勇者可刪除自己的留言，管理員可刪除任意留言
+                const canDelete = isMe || isAdmin; 
                 
-                // 判別發言者名稱
                 let senderName = usersData[uid].name;
                 if (m.sender === 'admin') senderName = '👑 村長';
                 if (m.sender === 'admin2') senderName = '🤴 國王';
@@ -573,7 +647,7 @@
                       </span>
                       {canDelete && (
                         <button onClick={() => deleteDiaryMsg(uid, m.id)} className="text-red-400 hover:text-red-300 text-xs px-1 bg-black/30 rounded border border-gray-600 cursor-pointer transition-transform active:scale-90">
-                          [❌撤回]
+                          [❌刪除]
                         </button>
                       )}
                     </div>
@@ -596,15 +670,16 @@
       if (fatalError) {
         return (
           <div className="min-h-screen bg-[#1d1d1d] flex flex-col items-center justify-center p-6 text-white pixel-font">
-            <div className="mc-panel p-6 max-w-md w-full border-red-500 bg-[#3b1111]">
-              <h2 className="text-2xl text-yellow-300 font-bold mb-4 flex items-center gap-2"><span className="text-3xl">🚨</span> 連線阻擋</h2>
-              <div className="bg-black/80 p-4 border border-red-400 text-red-300 text-sm font-bold whitespace-pre-line mb-6 font-mono">{fatalError}</div>
+            <div className="mc-panel p-6 max-w-lg w-full border-red-500 bg-[#3b1111]">
+              <h2 className="text-2xl text-yellow-300 font-bold mb-4 flex items-center gap-2"><span className="text-3xl">🚨</span> 系統連線提醒</h2>
+              <div className="bg-black/80 p-4 border border-red-400 text-red-300 text-sm font-bold whitespace-pre-line mb-6 font-mono leading-relaxed">{fatalError}</div>
+              <button onClick={() => window.location.reload()} className="mc-button mc-diamond w-full py-3 font-bold">重新嘗試連線</button>
             </div>
           </div>
         );
       }
 
-      if (loading) return <div className="h-[100dvh] bg-[#1d1d1d] flex flex-col items-center justify-center p-4 text-white pixel-font"><div className="text-4xl animate-bounce mb-4">⛏️</div><p className="font-bold tracking-widest text-lg">載入方塊中...</p></div>;
+      if (loading) return <div className="h-[100dvh] bg-[#1d1d1d] flex flex-col items-center justify-center p-4 text-white pixel-font"><div className="text-4xl animate-bounce mb-4">⛏️</div><p className="font-bold tracking-widest text-lg">正在從 Google 試算表載入方塊中...</p></div>;
       if (!usersData) return <div className="h-[100dvh] bg-[#1d1d1d] flex items-center justify-center text-white pixel-font"><p>準備地圖中...</p></div>;
 
       if (targetLogin) {
@@ -666,14 +741,18 @@
           const newPin = (editSettings?.[uid]?.pin || '').trim();
           if (!newName || !/^\d{4}$/.test(newPin)) return alertTip('資料格式錯誤！密碼必須是4個數字。');
           const newData = { ...usersData, [uid]: { ...usersData[uid], name: newName, pin: newPin } };
-          setUsersData(newData); updateCloudData(newData); alertTip(`✅ 資料已更新！`);
+          setUsersData(newData);
+          apiPost({ action: 'saveUserSettings', uid, name: newName, pin: newPin }).catch(e => alertTip(`更新失敗：${e.message}`));
+          alertTip(`✅ 資料已更新！`);
         };
         const saveAdminPin = () => {
           const newPin = (editAdminPin || '').trim();
           const newPin2 = (editAdmin2Pin || '').trim();
           if (!/^\d{4}$/.test(newPin) || !/^\d{4}$/.test(newPin2)) return alertTip('管理員密碼必須是 4 位數字！');
           const newData = { ...usersData, adminPin: newPin, admin2Pin: newPin2 };
-          setUsersData(newData); updateCloudData(newData); alertTip(`✅ 密碼已更新！`);
+          setUsersData(newData);
+          apiPost({ action: 'saveAdminPins', adminPin: newPin, admin2Pin: newPin2 }).catch(e => alertTip(`更新失敗：${e.message}`));
+          alertTip(`✅ 密碼已更新！`);
         };
 
         return (
@@ -687,6 +766,160 @@
                     <button onClick={confirmDialog.onConfirm} className="mc-button mc-grass px-6 py-2 font-bold">確定執行</button>
                     <button onClick={confirmDialog.onCancel} className="mc-button mc-obsidian px-6 py-2 font-bold">取消</button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {showAdminCalendar && (
+              <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[70] p-3">
+                <div className="mc-panel p-4 md:p-6 w-full max-w-lg flex flex-col max-h-[92vh] overflow-hidden">
+                  <div className="flex justify-between items-center mb-3 border-b-4 border-[#1f1f1f] pb-2 shrink-0">
+                    <h2 className="text-lg md:text-xl text-yellow-300 font-bold" style={{textShadow: '2px 2px 0 #000'}}>
+                      🗓️ 歷史打卡管理處
+                    </h2>
+                    <button onClick={() => { setShowAdminCalendar(false); setEditingDayRecord(null); setAdminCalMonthOffset(0); }} className="text-gray-300 text-2xl font-bold px-2">✕</button>
+                  </div>
+
+                  {/* 勇者切換 */}
+                  <div className="flex gap-2 mb-3 shrink-0">
+                    <button onClick={() => { setAdminCalPlayer('player1'); setEditingDayRecord(null); }} className={`mc-button flex-1 py-1.5 font-bold text-xs md:text-sm ${adminCalPlayer === 'player1' ? 'mc-grass' : 'mc-wood'}`}>
+                      👤 {usersData.player1.name}
+                    </button>
+                    <button onClick={() => { setAdminCalPlayer('player2'); setEditingDayRecord(null); }} className={`mc-button flex-1 py-1.5 font-bold text-xs md:text-sm ${adminCalPlayer === 'player2' ? 'mc-grass' : 'mc-wood'}`}>
+                      👤 {usersData.player2.name}
+                    </button>
+                  </div>
+
+                  {/* 月份切換 */}
+                  <div className="flex justify-between items-center mb-2 px-2 shrink-0">
+                    <button onClick={() => setAdminCalMonthOffset(p => p - 1)} className="mc-button px-3 py-1 font-bold">◀</button>
+                    <span className="text-lg md:text-xl text-[#4dd0e1] font-bold tracking-widest bg-[#111] px-3 py-1 border-4 border-[#555] shadow-inner">
+                      {new Date(new Date().setMonth(new Date().getMonth() + adminCalMonthOffset)).getFullYear()} / {String(new Date(new Date().setMonth(new Date().getMonth() + adminCalMonthOffset)).getMonth() + 1).padStart(2, '0')}
+                    </span>
+                    <button onClick={() => setAdminCalMonthOffset(p => p + 1)} className="mc-button px-3 py-1 font-bold">▶</button>
+                  </div>
+
+                  <div className="text-[11px] text-yellow-300 font-bold text-center mb-2 shrink-0">💡 點擊下方任意日期即可「補登、修改」該日的打卡紀錄</div>
+
+                  {/* 月曆網格 */}
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                    <div className="grid grid-cols-7 gap-1 text-center mb-1 font-bold text-gray-400 text-xs">
+                      <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 text-center text-sm">
+                      {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + adminCalMonthOffset, 1).getDay() }).map((_, i) => <div key={`ab-${i}`} className="p-1"></div>)}
+                      {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + adminCalMonthOffset + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
+                        const targetYear = new Date(new Date().setMonth(new Date().getMonth() + adminCalMonthOffset)).getFullYear();
+                        const targetMonth = String(new Date(new Date().setMonth(new Date().getMonth() + adminCalMonthOffset)).getMonth() + 1).padStart(2, '0');
+                        const dStr = `${targetYear}-${targetMonth}-${String(d).padStart(2,'0')}`;
+                        const targetUser = usersData[adminCalPlayer];
+                        let record = targetUser?.dailyRecords?.[dStr];
+                        if (dStr === TODAY_STR) {
+                          const cNow = targetUser.tasks.filter(t => t.completed).length;
+                          const tNow = targetUser.tasks.length;
+                          if (cNow > 0 || record) record = record || { c: cNow, t: tNow };
+                        }
+
+                        let stamp = '';
+                        let bgClass = 'bg-[#3b3b3b] border-[#1f1f1f] hover:border-[#4dd0e1]';
+                        let ratioText = '-';
+                        if (record && record.t > 0) {
+                          const ratio = record.c / record.t;
+                          ratioText = `${record.c}/${record.t}`;
+                          if (ratio >= 1) { stamp = '🌟'; bgClass = 'bg-[#fbc02d]/30 border-[#f57f17]'; }
+                          else if (ratio >= 0.5) { stamp = '🟢'; bgClass = 'bg-[#4caf50]/30 border-[#2e7d32]'; }
+                          else { stamp = '⭕'; bgClass = 'bg-[#e53935]/30 border-[#b71c1c]'; }
+                        } else if (dStr === TODAY_STR) {
+                          bgClass = 'bg-[#00bcd4]/30 border-[#00bcd4] shadow-[0_0_8px_rgba(0,188,212,0.6)]';
+                        }
+
+                        const isSelected = editingDayRecord && editingDayRecord.dateStr === dStr;
+                        if (isSelected) bgClass += ' ring-2 ring-yellow-400 scale-95';
+
+                        return (
+                          <button 
+                            key={d} 
+                            onClick={() => {
+                              const defaultT = record?.t || targetUser.tasks.length || 16;
+                              const defaultC = record?.c || 0;
+                              setEditingDayRecord({ dateStr: dStr, c: defaultC, t: defaultT });
+                            }} 
+                            className={`flex flex-col items-center justify-between border-2 p-1 aspect-square relative cursor-pointer transition-transform active:scale-95 ${bgClass}`}
+                          >
+                            <span className="text-[10px] text-gray-300 font-bold self-start">{d}</span>
+                            <span className="text-base md:text-lg">{stamp}</span>
+                            <span className="text-[9px] text-gray-300 font-bold tracking-tighter">{ratioText}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* 編輯面板 (當點擊某一天時在下方展開) */}
+                    {editingDayRecord && (
+                      <div className="mt-3 p-3 bg-[#222] border-4 border-[#4dd0e1] shadow-xl">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs md:text-sm font-bold text-yellow-300">
+                            ✏️ 修正【{usersData[adminCalPlayer].name}】{editingDayRecord.dateStr}
+                          </span>
+                          <button onClick={() => setEditingDayRecord(null)} className="text-gray-400 text-xs font-bold px-1">✕ 取消</button>
+                        </div>
+                        
+                        {/* 快速預設按鈕 */}
+                        <div className="grid grid-cols-3 gap-1 mb-2">
+                          <button 
+                            onClick={() => setEditingDayRecord(prev => ({ ...prev, c: prev.t }))}
+                            className="mc-button mc-gold py-1.5 text-xs font-bold text-[#3e2723]"
+                          >
+                            🌟 補滿全勤
+                          </button>
+                          <button 
+                            onClick={() => setEditingDayRecord(prev => ({ ...prev, c: Math.ceil(prev.t / 2) }))}
+                            className="mc-button mc-grass py-1.5 text-xs font-bold"
+                          >
+                            🟢 設為及格
+                          </button>
+                          <button 
+                            onClick={() => setEditingDayRecord(prev => ({ ...prev, c: 0 }))}
+                            className="mc-button mc-redstone py-1.5 text-xs font-bold"
+                          >
+                            ⭕ 設為未達
+                          </button>
+                        </div>
+
+                        {/* 精細調整數值 */}
+                        <div className="flex items-center justify-between gap-2 mb-2 bg-[#111] p-1.5 border-2 border-[#555]">
+                          <span className="text-xs font-bold text-gray-300">完成數：</span>
+                          <div className="flex items-center">
+                            <button onClick={() => setEditingDayRecord(prev => ({ ...prev, c: Math.max(0, prev.c - 1) }))} className="mc-button px-2 py-0.5 font-bold">-</button>
+                            <input 
+                              type="number" 
+                              min="0" 
+                              max={editingDayRecord.t}
+                              value={editingDayRecord.c} 
+                              onChange={e => {
+                                const val = parseInt(e.target.value) || 0;
+                                setEditingDayRecord(prev => ({ ...prev, c: Math.max(0, Math.min(prev.t, val)) }));
+                              }}
+                              className="w-12 bg-transparent text-[#4dd0e1] text-center font-bold text-base outline-none" 
+                            />
+                            <button onClick={() => setEditingDayRecord(prev => ({ ...prev, c: Math.min(prev.t, prev.c + 1) }))} className="mc-button px-2 py-0.5 font-bold">+</button>
+                          </div>
+                          <span className="text-xs text-gray-400 font-bold">/ 總數 {editingDayRecord.t}</span>
+                        </div>
+
+                        <button 
+                          onClick={() => saveDayRecord(adminCalPlayer, editingDayRecord.dateStr, editingDayRecord.c, editingDayRecord.t)}
+                          className="mc-button mc-diamond w-full py-2 text-xs md:text-sm font-bold shadow-md"
+                        >
+                          💾 儲存並更新試算表紀錄
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <button onClick={() => { setShowAdminCalendar(false); setEditingDayRecord(null); setAdminCalMonthOffset(0); }} className="mc-button mc-wood w-full mt-3 py-2 font-bold shrink-0">
+                    返回
+                  </button>
                 </div>
               </div>
             )}
@@ -720,7 +953,18 @@
 
                 {adminTab === 'overview' && (
                   <div className="space-y-4">
-                    <button onClick={resetDay} className="mc-button mc-diamond w-full py-4 flex flex-col items-center gap-1"><span className="text-2xl">📅</span><span className="font-bold">結算並蓋上日曆章</span><span className="text-xs text-[#006064] font-bold">(產生明天任務)</span></button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button onClick={resetDay} className="mc-button mc-diamond py-3 flex flex-col items-center justify-center gap-0.5">
+                        <span className="text-2xl">📅</span>
+                        <span className="font-bold text-sm md:text-base">結算並換日</span>
+                        <span className="text-[10px] text-[#006064] font-bold">(儲存今日並產生明天任務)</span>
+                      </button>
+                      <button onClick={() => { setShowAdminCalendar(true); setAdminCalPlayer('player1'); setEditingDayRecord(null); }} className="mc-button mc-gold py-3 flex flex-col items-center justify-center gap-0.5 text-[#3e2723]">
+                        <span className="text-2xl">🗓️</span>
+                        <span className="font-bold text-sm md:text-base">查看與補改歷史日曆</span>
+                        <span className="text-[10px] text-[#5c3a18] font-bold">(點擊補登金星 🌟 / 綠圓 🟢)</span>
+                      </button>
+                    </div>
                     <div className="mc-panel p-2">
                       <h3 className="text-sm text-[#4dd0e1] mb-2 font-bold flex justify-between items-end border-b-4 border-[#1f1f1f] pb-1">
                         <span>今日任務全覽</span><span className="text-[10px] text-yellow-400">💡 點擊下方可修正</span>
@@ -783,7 +1027,7 @@
                     <div className="mc-panel p-2 flex-1">
                       <h3 className="text-[#81c784] font-bold text-sm mb-2 border-b-2 border-[#555] pb-1">▶ {usersData[adminTargetPlayer].name} 的常駐任務單</h3>
                       {usersData[adminTargetPlayer].personalTasks.map((t, idx) => {
-                        let freqLabel = '每天'; if (t.freqType === 'once') freqLabel = '一次'; if (t.freqType === 'interval') freqLabel = `${t.freqValue}天一次`; if (t.freqType === 'weekly') freqLabel = '週' + t.freqValue.map(v => ['日','一','二','三','四','五','六'][v]).join(',');
+                        let freqLabel = '每天'; if (t.freqType === 'once') freqLabel = '一次'; if (t.freqType === 'interval') freqLabel = `${t.freqValue}天一次`; if (t.freqType === 'weekly') freqLabel = '週' + String(t.freqValue).split(',').map(v => ['日','一','二','三','四','五','六'][Number(v)]).join(',');
                         return (
                           <div key={t.id} className="flex justify-between items-center bg-[#2b2b2b] border-2 border-[#1f1f1f] p-2 mb-1">
                             <div className="flex flex-col flex-1 truncate mr-2"><span className="font-bold text-sm text-[#fff]">{idx + 1}. {t.title}</span><span className="text-[10px] text-yellow-300 font-bold">🕒 頻率: {freqLabel}</span></div>
@@ -835,7 +1079,6 @@
                               <button onClick={()=>handleDeleteAssessment(adminTargetPlayer, a.id)} className="mc-button mc-redstone px-2 py-1 text-xs shrink-0 font-bold">刪除</button>
                             </div>
                             
-                            {/* 👑 管理員審核區塊 */}
                             {(a.reportedCount > 0) && (
                               <div className="bg-[#4caf50]/20 border border-[#4caf50] p-2 mt-1 flex justify-between items-center">
                                  <span className="text-xs font-bold text-[#81c784]">🔔 已回報 ({a.reportedCount}次)</span>
@@ -892,13 +1135,12 @@
         );
       }
 
-      // 4. 遊戲畫面 (勇者端)
+      // 遊戲畫面 (勇者端)
       const user = usersData[currentUser];
       const totalCount = user.tasks.length;
       const completedCount = user.tasks.filter(t => t.completed).length;
       const progressPercent = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
       const avatarText = currentUser === 'player1' ? 'Oscar' : 'Roy';
-      // 檢查是否最後一則留言是兩位管理員的其中一位發的
       const hasNewMsg = user.diary.length > 0 && ['admin', 'admin2'].includes(user.diary[user.diary.length-1].sender);
 
       return (
@@ -1042,7 +1284,7 @@
                 </div>
               </div>
               <div className="w-full h-4 border-4 border-[#555] border-b-[#aaa] border-r-[#aaa] bg-[#111] overflow-hidden relative shadow-inner">
-                <div className="h-full bg-[#4caf50] border-t-2 border-[#81c784] transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
+                <div className="h-full bg-[#44af50] border-t-2 border-[#81c784] transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
               </div>
             </div>
           </div>
