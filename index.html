@@ -179,6 +179,9 @@
       const [newRuleForm, setNewRuleForm] = useState({ title: '', content: '' });
       const [savingRule, setSavingRule] = useState(false);
 
+      // LINE 家庭群組連線設定
+      const [editLineToken, setEditLineToken] = useState('');
+
       useEffect(() => {
         const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
         return () => clearInterval(timer);
@@ -208,6 +211,9 @@
             });
             setEditAdminPin(res.data.adminPin || '9999');
             setEditAdmin2Pin(res.data.admin2Pin || '8888');
+            if (res.data.lineSettings) {
+              setEditLineToken(res.data.lineSettings.token || '');
+            }
             setLoading(false);
           } else {
             setFatalError(`【資料載入失敗】\n${res?.error || '無法讀取 Google 試算表資料，請確認試算表是否有權限'}`);
@@ -1007,6 +1013,17 @@
           alertTip(`✅ 密碼已更新！`);
         };
 
+        const saveLineSettings = () => {
+          const token = (editLineToken || '').trim();
+          const newData = {
+            ...usersData,
+            lineSettings: { ...(usersData?.lineSettings || {}), token }
+          };
+          setUsersData(newData);
+          apiPost({ action: 'saveLineSettings', token }).catch(e => alertTip(`更新失敗：${e.message}`));
+          alertTip('✅ LINE Channel Access Token 已儲存！');
+        };
+
         return (
           <div className="h-[100dvh] bg-[#1d1d1d] text-white flex flex-col pixel-font">
             {alertMsg && <div className={`fixed top-16 left-1/2 transform -translate-x-1/2 z-[80] bg-[#e53935] border-4 border-[#ffcdd2] text-white p-3 text-center w-[90%] max-w-sm font-bold shadow-2xl`}>{alertMsg}</div>}
@@ -1528,6 +1545,45 @@
                           </div>
                         </div>
                       ))}
+
+                      {/* 💬 LINE 家庭群組機器人連線設定 */}
+                      <div className="mt-4 pt-4 border-t-2 border-[#555]">
+                        <div className="text-[#00e676] mb-1 font-bold text-xs flex items-center gap-1.5">
+                          <span className="text-base">💬</span> LINE 家庭群組機器人連線設定
+                        </div>
+                        <p className="text-[11px] text-gray-400 font-bold mb-2 leading-relaxed">
+                          勇者在交換日記留言時會自動推播至 LINE 群組；家長長按訊息「回覆」或開頭輸入「O:」「R:」可直接同步回覆！
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-gray-300 text-[11px] font-bold">Channel Access Token (長期權杖)：</label>
+                          <input 
+                            type="password" 
+                            placeholder="貼上 LINE Developers 取得的 Channel Access Token" 
+                            value={editLineToken} 
+                            onChange={(e) => setEditLineToken(e.target.value)} 
+                            className="mc-input font-mono text-xs py-1.5 text-white" 
+                          />
+                          <button onClick={saveLineSettings} className="mc-button mc-grass w-full py-1.5 font-bold text-xs mt-0.5">
+                            💾 儲存 LINE 權杖
+                          </button>
+                        </div>
+                        <div className="mt-3 p-2.5 bg-[#1b1b1b] border border-[#444] text-[11px] font-bold">
+                          {usersData.lineSettings?.groupId ? (
+                            <div className="text-[#81c784] space-y-1">
+                              <div className="flex items-center gap-1 text-xs">
+                                <span>✅</span> 機器人已成功綁定群組！
+                              </div>
+                              <div className="text-gray-400 font-mono text-[10px] truncate">
+                                群組 ID：{usersData.lineSettings.groupId}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-yellow-400 flex items-center gap-1.5">
+                              <span>⏳</span> 尚未綁定群組（將機器人加入 LINE 家庭群組並發送任何訊息，系統將自動完成綁定！）
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
