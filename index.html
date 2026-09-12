@@ -574,43 +574,54 @@
         }
       };
 
-      // 跑馬燈告示牌：支援多則公告連續循環不間斷滾動
+      // 📜 常駐公告告示牌（靜態不滾動，一目了然）
       const KnowledgeSign = () => {
         const marqueeList = (usersData && usersData.marquee && usersData.marquee.length > 0)
           ? usersData.marquee
           : [];
 
-        let badgeTag = '本日' + todayKnowledge.tag;
-        let scrollText = `[${todayKnowledge.title}] ${todayKnowledge.content}`;
-
-        if (marqueeList.length === 1) {
-          badgeTag = '本日' + (marqueeList[0].tag || '公告');
-          scrollText = `[${marqueeList[0].title}] ${marqueeList[0].content}`;
-        } else if (marqueeList.length > 1) {
-          const allSameTag = marqueeList.every(m => m.tag === marqueeList[0].tag);
-          badgeTag = allSameTag ? `本日${marqueeList[0].tag}` : '勇者快報';
-          // 將多則公告串接在一起，用可愛的符號 ✦ 間隔連續播放
-          scrollText = marqueeList
-            .map(m => `【${m.tag || '公告'}】[${m.title}] ${m.content}`)
-            .join('   ✦   ');
-        }
-
-        // 依據字數長度動態計算秒數，字多時自動加長滾動時間，讓小朋友看得清楚
-        const animDuration = Math.max(18, Math.round(scrollText.length * 0.32));
-
-        return (
-          <div className="mc-sign p-1 mb-3 shadow-sm flex items-center shrink-0 border-2" style={{ height: '36px' }}>
-            <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner z-10">
-              {badgeTag}
-            </div>
-            <div className="marquee-container flex-1 ml-2">
-              <div 
-                className="marquee-content text-xs md:text-sm font-bold text-[#3e2723]" 
-                style={{ animationDuration: `${animDuration}s` }}
-              >
-                {scrollText}
+        // 若無任何自訂公告，顯示內建每日知識/節氣
+        if (marqueeList.length === 0) {
+          return (
+            <div className="mc-sign p-2 px-3 mb-3 shadow-sm flex items-center shrink-0 border-2 gap-2.5">
+              <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
+                本日{todayKnowledge.tag}
+              </div>
+              <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug">
+                <span className="font-extrabold text-[#1f1f1f]">[{todayKnowledge.title}]</span> {todayKnowledge.content}
               </div>
             </div>
+          );
+        }
+
+        // 若只有 1 則公告
+        if (marqueeList.length === 1) {
+          const item = marqueeList[0];
+          return (
+            <div className="mc-sign p-2 px-3 mb-3 shadow-sm flex items-center shrink-0 border-2 gap-2.5">
+              <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
+                本日{item.tag || '公告'}
+              </div>
+              <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug">
+                <span className="font-extrabold text-[#1f1f1f]">[{item.title}]</span> {item.content}
+              </div>
+            </div>
+          );
+        }
+
+        // 若有多則公告，整齊條列常駐顯示
+        return (
+          <div className="mc-sign p-2 px-3 mb-3 shadow-sm shrink-0 border-2 space-y-1.5">
+            {marqueeList.map((item, idx) => (
+              <div key={idx} className="flex items-baseline gap-2 border-b border-[#8f6736]/30 last:border-none pb-1 last:pb-0">
+                <span className="shrink-0 bg-[#8f6736] text-[#ebd197] px-1.5 py-0.2 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
+                  {item.tag || '公告'}
+                </span>
+                <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug break-words">
+                  <span className="font-extrabold text-[#1f1f1f]">[{item.title}]</span> {item.content}
+                </div>
+              </div>
+            ))}
           </div>
         );
       };
