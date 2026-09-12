@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>勇者日常挑戰</title>
   
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://cdn.tailwindcss.com">
+  <link rel="dns-prefetch" href="https://script.google.com">
+  <link rel="dns-prefetch" href="https://script.googleusercontent.com">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -136,13 +143,26 @@
     const todayKnowledge = DAILY_KNOWLEDGE[dayOfYear % DAILY_KNOWLEDGE.length];
 
     function App() {
-      const [usersData, setUsersData] = useState(null);
+      // 🚀 0 秒秒開快取：先從瀏覽器讀取上次的資料，立刻呈現畫面，背後靜默聯網更新！
+      const [usersData, setUsersData] = useState(() => {
+        try {
+          const cached = localStorage.getItem('hero_tracker_cache_v2');
+          if (cached) return JSON.parse(cached);
+        } catch (e) {}
+        return null;
+      });
       const [currentUser, setCurrentUser] = useState(null); // 'player1', 'player2', 'admin' (村長), 'admin2' (國王)
       const [view, setView] = useState('login'); 
       const [pinInput, setPinInput] = useState('');
       const [targetLogin, setTargetLogin] = useState(null);
       const [animatingTask, setAnimatingTask] = useState(null);
-      const [loading, setLoading] = useState(true);
+      const [loading, setLoading] = useState(() => {
+        try {
+          return !localStorage.getItem('hero_tracker_cache_v2');
+        } catch (e) {
+          return true;
+        }
+      });
       const [fatalError, setFatalError] = useState(null);
       
       const [currentTime, setCurrentTime] = useState(Date.now());
@@ -157,9 +177,33 @@
       const [celebration, setCelebration] = useState({ show: false, title: '', message: '', type: '' });
       const [adminTab, setAdminTab] = useState('overview'); 
       const [adminTargetPlayer, setAdminTargetPlayer] = useState('player1');
-      const [editSettings, setEditSettings] = useState({ player1: { name: '', pin: '' }, player2: { name: '', pin: '' } });
-      const [editAdminPin, setEditAdminPin] = useState('');
-      const [editAdmin2Pin, setEditAdmin2Pin] = useState('');
+      const [editSettings, setEditSettings] = useState(() => {
+        try {
+          const cached = localStorage.getItem('hero_tracker_cache_v2');
+          if (cached) {
+            const d = JSON.parse(cached);
+            return {
+              player1: { name: d.player1?.name || '', pin: d.player1?.pin || '' },
+              player2: { name: d.player2?.name || '', pin: d.player2?.pin || '' }
+            };
+          }
+        } catch (e) {}
+        return { player1: { name: '', pin: '' }, player2: { name: '', pin: '' } };
+      });
+      const [editAdminPin, setEditAdminPin] = useState(() => {
+        try {
+          const cached = localStorage.getItem('hero_tracker_cache_v2');
+          if (cached) return JSON.parse(cached).adminPin || '9999';
+        } catch (e) {}
+        return '9999';
+      });
+      const [editAdmin2Pin, setEditAdmin2Pin] = useState(() => {
+        try {
+          const cached = localStorage.getItem('hero_tracker_cache_v2');
+          if (cached) return JSON.parse(cached).admin2Pin || '8888';
+        } catch (e) {}
+        return '8888';
+      });
       
       const [taskTargetMode, setTaskTargetMode] = useState('both'); 
       const [newTaskForm, setNewTaskForm] = useState({ title: '', freqType: 'daily', freqValue: 2, freqWeekly: [] });
@@ -180,14 +224,29 @@
       const [savingRule, setSavingRule] = useState(false);
 
       // LINE 家庭群組連線設定
-      const [editLineToken, setEditLineToken] = useState('');
+      const [editLineToken, setEditLineToken] = useState(() => {
+        try {
+          const cached = localStorage.getItem('hero_tracker_cache_v2');
+          if (cached) return JSON.parse(cached).lineSettings?.token || '';
+        } catch (e) {}
+        return '';
+      });
 
       useEffect(() => {
         const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
         return () => clearInterval(timer);
       }, []);
 
-      // 載入 Google 試算表初次資料
+      // 每次資料更新時自動同步至本機極速快取
+      useEffect(() => {
+        if (usersData) {
+          try {
+            localStorage.setItem('hero_tracker_cache_v2', JSON.stringify(usersData));
+          } catch (e) {}
+        }
+      }, [usersData]);
+
+      // 載入 Google 試算表最新資料（背景同步更新）
       const loadInitialData = async () => {
         if (!GAS_API_URL || GAS_API_URL.includes("AKfycbwYOUR_SCRIPT_ID")) {
           setFatalError(
@@ -205,6 +264,9 @@
           const res = await apiGet('initData');
           if (res && res.success && res.data) {
             setUsersData(res.data);
+            try {
+              localStorage.setItem('hero_tracker_cache_v2', JSON.stringify(res.data));
+            } catch (e) {}
             setEditSettings({
               player1: { name: res.data.player1.name, pin: res.data.player1.pin },
               player2: { name: res.data.player2.name, pin: res.data.player2.pin }
@@ -216,11 +278,15 @@
             }
             setLoading(false);
           } else {
-            setFatalError(`【資料載入失敗】\n${res?.error || '無法讀取 Google 試算表資料，請確認試算表是否有權限'}`);
+            if (!localStorage.getItem('hero_tracker_cache_v2')) {
+              setFatalError(`【資料載入失敗】\n${res?.error || '無法讀取 Google 試算表資料，請確認試算表是否有權限'}`);
+            }
             setLoading(false);
           }
         } catch (err) {
-          setFatalError(`【連線失敗】\n無法連線至 Google Apps Script！\n請確認：\n1. 部署時「誰可以存取」是否已選擇「任何人 (Anyone)」\n2. 網址是否正確\n\n錯誤詳情：${err.message}`);
+          if (!localStorage.getItem('hero_tracker_cache_v2')) {
+            setFatalError(`【連線失敗】\n無法連線至 Google Apps Script！\n請確認：\n1. 部署時「誰可以存取」是否已選擇「任何人 (Anyone)」\n2. 網址是否正確\n\n錯誤詳情：${err.message}`);
+          }
           setLoading(false);
         }
       };
@@ -1026,9 +1092,9 @@
 
         return (
           <div className="h-[100dvh] bg-[#1d1d1d] text-white flex flex-col pixel-font">
-            {alertMsg && <div className={`fixed top-16 left-1/2 transform -translate-x-1/2 z-[80] bg-[#e53935] border-4 border-[#ffcdd2] text-white p-3 text-center w-[90%] max-w-sm font-bold shadow-2xl`}>{alertMsg}</div>}
+            {alertMsg && <div className={`fixed top-16 left-1/2 transform -translate-x-1/2 z-[200] bg-[#e53935] border-4 border-[#ffcdd2] text-white p-3 text-center w-[90%] max-w-sm font-bold shadow-2xl`}>{alertMsg}</div>}
             {confirmDialog && (
-              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4`}>
+              <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-[200] p-4`}>
                 <div className="mc-panel p-6 w-[95%] max-w-sm text-center">
                   <p className="mb-6 text-base font-bold leading-relaxed whitespace-pre-line">{confirmDialog.message}</p>
                   <div className="flex justify-center gap-4">
