@@ -173,6 +173,12 @@
       const alertTip = (msg) => { setAlertMsg(msg); setTimeout(() => setAlertMsg(null), 3500); };
       const [confirmDialog, setConfirmDialog] = useState(null);
 
+      // 家規公告相關狀態
+      const [showHouseRules, setShowHouseRules] = useState(false);
+      const [editingRule, setEditingRule] = useState(null);
+      const [newRuleForm, setNewRuleForm] = useState({ title: '', content: '' });
+      const [savingRule, setSavingRule] = useState(false);
+
       useEffect(() => {
         const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
         return () => clearInterval(timer);
@@ -574,21 +580,237 @@
         }
       };
 
-      // 📜 常駐公告告示牌（靜態不滾動，一目了然）
+      // 📜 家規公告相關操作與簽署邏輯
+      const isRuleAgreedByUser = (uid, rule) => {
+        if (!usersData || !usersData.ruleAgreements || !usersData.ruleAgreements[uid] || !rule) return false;
+        const ag = usersData.ruleAgreements[uid][rule.id];
+        return ag && ag.agreedVersion === rule.version;
+      };
+
+      const getAgreedRulesCount = (uid) => {
+        if (!usersData || !usersData.houseRules) return 0;
+        return usersData.houseRules.filter(r => isRuleAgreedByUser(uid, r)).length;
+      };
+
+      const hasUnsignedRules = (() => {
+        if (!usersData || !usersData.houseRules || usersData.houseRules.length === 0) return false;
+        if (!currentUser || !['player1', 'player2'].includes(currentUser)) return false;
+        return usersData.houseRules.some(r => !isRuleAgreedByUser(currentUser, r));
+      })();
+
+      // 勇者勾選同意單一條款
+      const handleAgreeRule = async (ruleId, ruleVersion) => {
+        if (!currentUser || !['player1', 'player2'].includes(currentUser)) return;
+        const now = Date.now();
+        // 樂觀更新
+        setUsersData(prev => {
+          if (!prev) return prev;
+          const newAgreements = { ...(prev.ruleAgreements || {}) };
+          if (!newAgreements[currentUser]) newAgreements[currentUser] = {};
+          newAgreements[currentUser] = {
+            ...newAgreements[currentUser],
+            [ruleId]: { agreedVersion: ruleVersion, signTime: now }
+          };
+          return { ...prev, ruleAgreements: newAgreements };
+        });
+
+        try {
+          const res = await apiPost({
+            action: 'agreeHouseRule',
+            uid: currentUser,
+            ruleId: ruleId,
+            version: ruleVersion
+          });
+          if (res && res.success) {
+            alertTip('✅ 已簽署同意該條款！');
+          } else {
+            alertTip(`簽署未完成：${res?.error || '請稍後重試'}`);
+          }
+        } catch (e) {
+          alertTip(`簽署出錯：${e.message}`);
+        }
+      };
+
+      // 勇者一鍵簽署全部條款
+      const handleAgreeAllRules = async () => {
+        if (!currentUser || !['player1', 'player2'].includes(currentUser) || !usersData?.houseRules) return;
+        const now = Date.now();
+        const rulesToSign = usersData.houseRules.map(r => ({ id: r.id, version: r.version }));
+        // 樂觀更新
+        setUsersData(prev => {
+          if (!prev) return prev;
+          const newAgreements = { ...(prev.ruleAgreements || {}) };
+          if (!newAgreements[currentUser]) newAgreements[currentUser] = {};
+          const userMap = { ...newAgreements[currentUser] };
+          rulesToSign.forEach(r => {
+            userMap[r.id] = { agreedVersion: r.version, signTime: now };
+          });
+          newAgreements[currentUser] = userMap;
+          return { ...prev, ruleAgreements: newAgreements };
+        });
+
+        try {
+          const res = await apiPost({
+            action: 'agreeAllHouseRules',
+            uid: currentUser,
+            rules: rulesToSign
+          });
+          if (res && res.success) {
+            alertTip('🌟 已完成全部家規條款簽署同意！');
+          } else {
+            alertTip(`簽署出錯：${res?.error || '未知錯誤'}`);
+          }
+        } catch (e) {
+          alertTip(`簽署失敗：${e.message}`);
+        }
+      };
+
+      // 管理員新增家規
+      const handleAddHouseRule = async () => {
+        if (!newRuleForm.title.trim()) return alertTip('請輸入家規標題！');
+        if (!newRuleForm.content.trim()) return alertTip('請輸入家規內容！');
+        setSavingRule(true);
+        try {
+          const res = await apiPost({
+            action: 'addHouseRule',
+            title: newRuleForm.title.trim(),
+            content: newRuleForm.content.trim()
+          });
+          if (res && res.success) {
+            const refreshed = await apiGet('initData');
+            if (refreshed && refreshed.success && refreshed.data) {
+              setUsersData(refreshed.data);
+            }
+            setNewRuleForm({ title: '', content: '' });
+            alertTip('📜 已新增家規條款，並自動發布置頂提醒公告！');
+          } else {
+            alertTip(`新增失敗：${res?.error || '未知錯誤'}`);
+          }
+        } catch (e) {
+          alertTip(`新增出錯：${e.message}`);
+        } finally {
+          setSavingRule(false);
+        }
+      };
+
+      // 管理員儲存修改家規
+      const handleSaveEditHouseRule = () => {
+        if (!editingRule || !editingRule.title.trim()) return alertTip('請輸入條款標題！');
+        if (!editingRule.content.trim()) return alertTip('請輸入條款內容！');
+        setConfirmDialog({
+          message: `確定要儲存修改「${editingRule.title}」嗎？\n\n⚠️ 注意：內容修改後，所有勇者對此條款的同意狀態將重置，必須重新閱讀並勾選同意，系統也會自動發布置頂公告提醒！`,
+          onConfirm: async () => {
+            setConfirmDialog(null);
+            setSavingRule(true);
+            try {
+              const res = await apiPost({
+                action: 'updateHouseRule',
+                ruleId: editingRule.id,
+                title: editingRule.title.trim(),
+                content: editingRule.content.trim()
+              });
+              if (res && res.success) {
+                const refreshed = await apiGet('initData');
+                if (refreshed && refreshed.success && refreshed.data) {
+                  setUsersData(refreshed.data);
+                }
+                setEditingRule(null);
+                alertTip('✅ 條款已更新！已重置簽署狀態並發布提醒公告！');
+              } else {
+                alertTip(`更新失敗：${res?.error || '未知錯誤'}`);
+              }
+            } catch (e) {
+              alertTip(`更新出錯：${e.message}`);
+            } finally {
+              setSavingRule(false);
+            }
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
+      // 管理員刪除家規
+      const handleDeleteHouseRule = (ruleId, title) => {
+        setConfirmDialog({
+          message: `確定要刪除家規「${title}」嗎？\n刪除後該條款將從所有勇者介面移除。`,
+          onConfirm: async () => {
+            setConfirmDialog(null);
+            try {
+              const res = await apiPost({
+                action: 'deleteHouseRule',
+                ruleId: ruleId
+              });
+              if (res && res.success) {
+                setUsersData(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    houseRules: (prev.houseRules || []).filter(r => r.id !== ruleId)
+                  };
+                });
+                alertTip('🗑️ 家規條款已刪除！');
+              } else {
+                alertTip(`刪除失敗：${res?.error || '未知錯誤'}`);
+              }
+            } catch (e) {
+              alertTip(`刪除出錯：${e.message}`);
+            }
+          },
+          onCancel: () => setConfirmDialog(null)
+        });
+      };
+
+      // 管理員手動刷新置頂家規提醒公告
+      const handleTriggerRulesNotice = async () => {
+        try {
+          const res = await apiPost({ action: 'triggerHouseRulesAnnouncement' });
+          if (res && res.success) {
+            const refreshed = await apiGet('initData');
+            if (refreshed && refreshed.success && refreshed.data) {
+              setUsersData(refreshed.data);
+            }
+            alertTip('📢 已成功刷新置頂家規提醒公告！');
+          }
+        } catch (e) {
+          alertTip(`刷新公告失敗：${e.message}`);
+        }
+      };
+
+      // 📜 常駐公告告示牌（含家規未簽署醒目提醒）
       const KnowledgeSign = () => {
         const marqueeList = (usersData && usersData.marquee && usersData.marquee.length > 0)
           ? usersData.marquee
           : [];
 
+        const unSignedNotice = hasUnsignedRules && ['player1', 'player2'].includes(currentUser) && (
+          <div 
+            onClick={() => setShowHouseRules(true)} 
+            className="bg-[#c62828] hover:bg-[#b71c1c] text-white p-2.5 px-3 mb-2.5 border-4 border-[#ef5350] flex items-center justify-between cursor-pointer transition-transform active:scale-[0.98] shadow-lg animate-pulse select-none"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📜⚠️</span>
+              <span className="text-xs md:text-sm font-bold tracking-wide">
+                【家規更新提醒】家規條款有新增或修改！您尚有未同意的條款，請立即點此簽署！
+              </span>
+            </div>
+            <span className="bg-[#ffeb3b] text-[#3e2723] px-2.5 py-1 text-xs font-black shrink-0 border border-[#f57f17] shadow-sm ml-2">
+              前往簽署 ➔
+            </span>
+          </div>
+        );
+
         // 若無任何自訂公告，顯示內建每日知識/節氣
         if (marqueeList.length === 0) {
           return (
-            <div className="mc-sign p-2 px-3 mb-3 shadow-sm flex items-center shrink-0 border-2 gap-2.5">
-              <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
-                本日{todayKnowledge.tag}
-              </div>
-              <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug">
-                <span className="font-extrabold text-[#1f1f1f]">[{todayKnowledge.title}]</span> {todayKnowledge.content}
+            <div className="mb-3 shrink-0">
+              {unSignedNotice}
+              <div className="mc-sign p-2 px-3 shadow-sm flex items-center shrink-0 border-2 gap-2.5">
+                <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
+                  本日{todayKnowledge.tag}
+                </div>
+                <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug">
+                  <span className="font-extrabold text-[#1f1f1f]">[{todayKnowledge.title}]</span> {todayKnowledge.content}
+                </div>
               </div>
             </div>
           );
@@ -597,13 +819,21 @@
         // 若只有 1 則公告
         if (marqueeList.length === 1) {
           const item = marqueeList[0];
+          const isHouseRuleNotice = (item.tag === '家規' || String(item.title).includes('家規'));
           return (
-            <div className="mc-sign p-2 px-3 mb-3 shadow-sm flex items-center shrink-0 border-2 gap-2.5">
-              <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
-                本日{item.tag || '公告'}
-              </div>
-              <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug">
-                <span className="font-extrabold text-[#1f1f1f]">[{item.title}]</span> {item.content}
+            <div className="mb-3 shrink-0">
+              {unSignedNotice}
+              <div 
+                onClick={() => { if (isHouseRuleNotice) setShowHouseRules(true); }}
+                className={`mc-sign p-2 px-3 shadow-sm flex items-center shrink-0 border-2 gap-2.5 ${isHouseRuleNotice ? 'cursor-pointer hover:border-[#4dd0e1]' : ''}`}
+              >
+                <div className="shrink-0 bg-[#8f6736] text-[#ebd197] px-2 py-0.5 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
+                  本日{item.tag || '公告'}
+                </div>
+                <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug">
+                  <span className="font-extrabold text-[#1f1f1f]">[{item.title}]</span> {item.content}
+                  {isHouseRuleNotice && <span className="text-[#006064] text-xs font-extrabold ml-1 underline">[查看]</span>}
+                </div>
               </div>
             </div>
           );
@@ -611,17 +841,28 @@
 
         // 若有多則公告，整齊條列常駐顯示
         return (
-          <div className="mc-sign p-2 px-3 mb-3 shadow-sm shrink-0 border-2 space-y-1.5">
-            {marqueeList.map((item, idx) => (
-              <div key={idx} className="flex items-baseline gap-2 border-b border-[#8f6736]/30 last:border-none pb-1 last:pb-0">
-                <span className="shrink-0 bg-[#8f6736] text-[#ebd197] px-1.5 py-0.2 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
-                  {item.tag || '公告'}
-                </span>
-                <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug break-words">
-                  <span className="font-extrabold text-[#1f1f1f]">[{item.title}]</span> {item.content}
-                </div>
-              </div>
-            ))}
+          <div className="mb-3 shrink-0">
+            {unSignedNotice}
+            <div className="mc-sign p-2 px-3 shadow-sm shrink-0 border-2 space-y-1.5">
+              {marqueeList.map((item, idx) => {
+                const isHouseRuleNotice = (item.tag === '家規' || String(item.title).includes('家規'));
+                return (
+                  <div 
+                    key={idx} 
+                    onClick={() => { if (isHouseRuleNotice) setShowHouseRules(true); }}
+                    className={`flex items-baseline gap-2 border-b border-[#8f6736]/30 last:border-none pb-1 last:pb-0 ${isHouseRuleNotice ? 'cursor-pointer hover:bg-black/5 rounded p-0.5' : ''}`}
+                  >
+                    <span className="shrink-0 bg-[#8f6736] text-[#ebd197] px-1.5 py-0.2 text-[10px] md:text-xs font-bold border border-[#ebd197] shadow-inner">
+                      {item.tag || '公告'}
+                    </span>
+                    <div className="flex-1 text-xs md:text-sm font-bold text-[#3e2723] leading-snug break-words">
+                      <span className="font-extrabold text-[#1f1f1f]">[{item.title}]</span> {item.content}
+                      {isHouseRuleNotice && <span className="text-[#006064] text-xs font-extrabold ml-1 underline">[點擊查看]</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       };
@@ -943,7 +1184,7 @@
                 <button onClick={() => setView('login')} className="mc-button mc-redstone px-3 py-1 text-xs font-bold">回首頁</button>
               </div>
               <div className="flex overflow-x-auto gap-1 p-2 custom-scrollbar">
-                {[{ id: 'overview', icon: '📊', label: '總覽' }, { id: 'tasks', icon: '📝', label: '任務' }, { id: 'assessments', icon: '📚', label: '評量' }, { id: 'diary', icon: '📓', label: '信箱' }, { id: 'settings', icon: '⚙️', label: '設定' }].map(tab => (
+                {[{ id: 'overview', icon: '📊', label: '總覽' }, { id: 'tasks', icon: '📝', label: '任務' }, { id: 'assessments', icon: '📚', label: '評量' }, { id: 'rules', icon: '📜', label: '家規' }, { id: 'diary', icon: '📓', label: '信箱' }, { id: 'settings', icon: '⚙️', label: '設定' }].map(tab => (
                   <button key={tab.id} onClick={() => setAdminTab(tab.id)} className={`mc-button px-2 py-1.5 text-xs md:text-sm whitespace-nowrap font-bold flex-1 ${adminTab === tab.id ? 'mc-diamond' : ''}`}>
                     {tab.icon} {tab.label}
                   </button>
@@ -1106,6 +1347,156 @@
                   </div>
                 )}
 
+                {adminTab === 'rules' && (
+                  <div className="flex flex-col space-y-4">
+                    {/* 兩位勇者的簽署狀態卡片 */}
+                    <div className="mc-panel p-3">
+                      <h3 className="text-sm text-[#4dd0e1] mb-2 font-bold flex justify-between items-center border-b-2 border-[#555] pb-1">
+                        <span>👥 勇者家規簽署總覽</span>
+                        <button onClick={handleTriggerRulesNotice} className="mc-button mc-gold px-2 py-1 text-[11px] font-bold text-[#3e2723]">
+                          📢 刷新置頂簽署提醒公告
+                        </button>
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {['player1', 'player2'].map(uid => {
+                          const targetUser = usersData[uid];
+                          const total = usersData.houseRules?.length || 0;
+                          const agreedCount = getAgreedRulesCount(uid);
+                          const isAllAgreed = total > 0 && agreedCount === total;
+                          return (
+                            <div key={uid} className="bg-[#2b2b2b] p-3 border-2 border-[#1f1f1f] flex items-center justify-between">
+                              <div>
+                                <span className="font-bold text-sm text-yellow-300">{targetUser.name}</span>
+                                <div className="text-xs text-gray-300 font-bold mt-1">
+                                  簽署進度：{agreedCount} / {total} 條 ({total === 0 ? 0 : Math.round((agreedCount / total) * 100)}%)
+                                </div>
+                              </div>
+                              <span className={`px-2 py-1 text-xs font-bold border-2 ${isAllAgreed ? 'bg-[#388e3c] text-white border-[#81c784]' : 'bg-[#b71c1c] text-white border-[#ef5350] animate-pulse'}`}>
+                                {isAllAgreed ? '🌟 全數同意' : `⚠️ 待簽署 (${total - agreedCount})`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 新增家規條款面板 */}
+                    <div className="mc-panel p-3">
+                      <h3 className="text-yellow-300 font-bold mb-2 text-sm">➕ 新增家規公告條款</h3>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text"
+                          placeholder="條款標題 (例: 睡前收好書包與書桌)"
+                          value={newRuleForm.title}
+                          onChange={e => setNewRuleForm({ ...newRuleForm, title: e.target.value })}
+                          className="mc-input text-sm font-bold"
+                        />
+                        <textarea
+                          placeholder="條款詳細內容 (說明勇者應遵守的具體行為規範)"
+                          value={newRuleForm.content}
+                          onChange={e => setNewRuleForm({ ...newRuleForm, content: e.target.value })}
+                          rows={3}
+                          className="mc-input text-sm font-bold resize-none"
+                        />
+                        <button
+                          onClick={handleAddHouseRule}
+                          disabled={savingRule}
+                          className="mc-button mc-grass w-full mt-1 py-2 text-sm font-bold shadow-md"
+                        >
+                          {savingRule ? '發布中...' : '確認發布新條款 (自動在置頂區發布提醒)'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 現有家規條款清單 */}
+                    <div className="mc-panel p-3 flex-1">
+                      <h3 className="text-[#81c784] font-bold text-sm mb-2 border-b-2 border-[#555] pb-1 flex justify-between items-center">
+                        <span>📜 現行家規條款清單 ({usersData.houseRules?.length || 0} 條)</span>
+                        <span className="text-[10px] text-yellow-400">💡 修改條款將自動重置勇者簽署狀態</span>
+                      </h3>
+
+                      {(!usersData.houseRules || usersData.houseRules.length === 0) ? (
+                        <div className="text-center text-gray-500 font-bold py-6 text-sm">目前沒有任何家規條款，請在上方新增！</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {usersData.houseRules.map((rule, idx) => (
+                            <div key={rule.id} className="bg-[#2b2b2b] border-2 border-[#1f1f1f] p-3 flex flex-col gap-2">
+                              {editingRule && editingRule.id === rule.id ? (
+                                <div className="space-y-2 bg-[#1b1b1b] p-3 border-2 border-[#4dd0e1]">
+                                  <div className="text-xs font-bold text-[#4dd0e1]">✏️ 正在編輯第 {idx + 1} 條</div>
+                                  <input
+                                    type="text"
+                                    value={editingRule.title}
+                                    onChange={e => setEditingRule({ ...editingRule, title: e.target.value })}
+                                    className="mc-input w-full text-sm font-bold"
+                                    placeholder="條款標題"
+                                  />
+                                  <textarea
+                                    value={editingRule.content}
+                                    onChange={e => setEditingRule({ ...editingRule, content: e.target.value })}
+                                    rows={3}
+                                    className="mc-input w-full text-sm font-bold resize-none"
+                                    placeholder="條款內容"
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={handleSaveEditHouseRule}
+                                      disabled={savingRule}
+                                      className="mc-button mc-diamond flex-1 py-1.5 text-xs font-bold"
+                                    >
+                                      {savingRule ? '儲存中...' : '💾 儲存修訂 (重置簽署並發公告)'}
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingRule(null)}
+                                      className="mc-button mc-wood px-4 py-1.5 text-xs font-bold"
+                                    >
+                                      取消
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-2">
+                                      <span className="bg-[#111] text-yellow-300 px-2 py-0.5 text-xs font-extrabold border border-[#555]">
+                                        第 {idx + 1} 條
+                                      </span>
+                                      <span className="font-bold text-sm md:text-base text-white">{rule.title}</span>
+                                    </div>
+                                    <div className="flex gap-1.5 shrink-0">
+                                      <button
+                                        onClick={() => setEditingRule({ id: rule.id, title: rule.title, content: rule.content })}
+                                        className="mc-button mc-diamond px-2.5 py-1 text-xs font-bold"
+                                      >
+                                        ✏️ 編輯
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteHouseRule(rule.id, rule.title)}
+                                        className="mc-button mc-redstone px-2.5 py-1 text-xs font-bold"
+                                      >
+                                        🗑️ 刪除
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="text-xs md:text-sm text-gray-300 font-bold whitespace-pre-line bg-black/40 p-2 border border-[#444]">
+                                    {rule.content}
+                                  </div>
+                                  <div className="flex justify-between items-center text-[10px] text-gray-400 font-bold">
+                                    <span>最後更新：{new Date(rule.updatedAt).toLocaleString('zh-TW')}</span>
+                                    <span>
+                                      簽署狀況：Oscar: {isRuleAgreedByUser('player1', rule) ? '✅' : '❌'} | Roy: {isRuleAgreedByUser('player2', rule) ? '✅' : '❌'}
+                                    </span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {adminTab === 'diary' && (
                   <div className="flex flex-col h-[60dvh] border-4 border-[#5e5e5e] bg-[#1e1e1e]">
                     {renderDiaryChat(adminTargetPlayer)}
@@ -1205,6 +1596,119 @@
             </div>
           )}
 
+          {showHouseRules && (
+            <div className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-3 pixel-font">
+              <div className="mc-panel p-4 md:p-6 w-full max-w-2xl flex flex-col max-h-[92vh] overflow-hidden">
+                {/* 標題欄 */}
+                <div className="flex justify-between items-center mb-3 border-b-4 border-[#1f1f1f] pb-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">📜</span>
+                    <h2 className="text-lg md:text-xl text-yellow-300 font-bold" style={{textShadow: '2px 2px 0 #000'}}>
+                      勇者家規公告守則
+                    </h2>
+                  </div>
+                  <button onClick={() => setShowHouseRules(false)} className="text-gray-300 hover:text-white text-2xl font-bold px-2">✕</button>
+                </div>
+
+                {/* 說明橫幅 */}
+                <div className="mc-sign p-2 px-3 mb-3 text-xs md:text-sm font-bold shrink-0 border-2">
+                  🛡️ 身為合格的勇者，必須遵守家園與冒險守則！請仔細閱讀以下各項條款，並逐條勾選同意。條款若有增修，需重新完成簽署。
+                </div>
+
+                {/* 簽署進度條 */}
+                <div className="flex items-center justify-between mb-2 px-1 shrink-0">
+                  <span className="text-xs font-bold text-gray-300">
+                    簽署進度：
+                    <span className={getAgreedRulesCount(currentUser) === (usersData?.houseRules?.length || 0) && (usersData?.houseRules?.length || 0) > 0 ? "text-[#81c784] font-extrabold ml-1" : "text-yellow-400 font-extrabold ml-1"}>
+                      {getAgreedRulesCount(currentUser)} / {usersData?.houseRules?.length || 0} 條
+                    </span>
+                  </span>
+                  {getAgreedRulesCount(currentUser) === (usersData?.houseRules?.length || 0) && (usersData?.houseRules?.length || 0) > 0 && (
+                    <span className="text-xs text-[#81c784] font-bold bg-[#1b5e20] px-2 py-0.5 border border-[#81c784]">
+                      🌟 已全數簽署同意
+                    </span>
+                  )}
+                </div>
+
+                {/* 條款清單 (滾動區) */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3">
+                  {(!usersData?.houseRules || usersData.houseRules.length === 0) ? (
+                    <div className="text-center text-gray-400 py-10 font-bold">目前沒有設定任何家規條款！</div>
+                  ) : (
+                    usersData.houseRules.map((rule, idx) => {
+                      const isAgreed = isRuleAgreedByUser(currentUser, rule);
+                      const signInfo = usersData.ruleAgreements?.[currentUser]?.[rule.id];
+                      return (
+                        <div 
+                          key={rule.id}
+                          className={`p-3 border-4 transition-all ${isAgreed ? 'bg-[#2e3b2e] border-[#4caf50]/60' : 'bg-[#3b2b2b] border-[#e53935]/80 shadow-md'}`}
+                        >
+                          <div className="flex justify-between items-start gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="bg-[#111] text-yellow-300 px-2 py-0.5 text-xs font-extrabold border border-[#555]">
+                                第 {idx + 1} 條
+                              </span>
+                              <h3 className="text-base md:text-lg font-bold text-white tracking-wide">
+                                {rule.title}
+                              </h3>
+                            </div>
+                            {isAgreed ? (
+                              <span className="shrink-0 text-[10px] md:text-xs text-[#81c784] font-bold bg-[#1b5e20] px-2 py-0.5 border border-[#4caf50]">
+                                ✓ 已同意
+                              </span>
+                            ) : (
+                              <span className="shrink-0 text-[10px] md:text-xs text-yellow-300 font-bold bg-[#b71c1c] px-2 py-0.5 border border-[#ef5350] animate-pulse">
+                                ⚠️ 待簽署
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-sm md:text-base text-gray-200 font-bold leading-relaxed whitespace-pre-line bg-black/40 p-2.5 border-2 border-[#555] mb-3">
+                            {rule.content}
+                          </div>
+
+                          <div className="flex flex-wrap justify-between items-center gap-2 pt-1 border-t border-white/10">
+                            <span className="text-[11px] text-gray-400 font-bold">
+                              最後更新：{new Date(rule.updatedAt).toLocaleDateString('zh-TW')}
+                              {isAgreed && signInfo?.signTime && ` • 簽署於 ${new Date(signInfo.signTime).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`}
+                            </span>
+
+                            <button
+                              onClick={() => handleAgreeRule(rule.id, rule.version)}
+                              className={`mc-button px-3 py-1.5 text-xs md:text-sm font-bold flex items-center gap-1.5 ${isAgreed ? 'mc-grass' : 'mc-gold text-[#3e2723]'}`}
+                            >
+                              <span className="text-base">{isAgreed ? '✅' : '⬜'}</span>
+                              <span>{isAgreed ? '已簽署同意' : '我已閱讀並同意此條款'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* 底部按鈕欄 */}
+                <div className="flex justify-between items-center gap-2 mt-3 pt-3 border-t-4 border-[#1f1f1f] shrink-0">
+                  {usersData?.houseRules && usersData.houseRules.length > 0 && !hasUnsignedRules ? (
+                    <div className="text-xs text-[#81c784] font-bold">
+                      🎉 勇者誓約已生效，做個恪守公約的優秀勇者！
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleAgreeAllRules}
+                      className="mc-button mc-diamond px-3 py-2 text-xs md:text-sm font-bold shadow-md"
+                    >
+                      ✍️ 一鍵同意全部條款
+                    </button>
+                  )}
+                  <button onClick={() => setShowHouseRules(false)} className="mc-button mc-wood px-6 py-2 text-xs md:text-sm font-bold">
+                    關閉
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {celebration.show && (
             <div onClick={() => setCelebration(prev => ({ ...prev, show: false }))} className={`fixed inset-0 bg-black/70 flex items-center justify-center z-[110] p-4 backdrop-blur-sm cursor-pointer`}>
               <div className="relative overflow-hidden mc-panel p-6 w-[90%] max-w-md text-center celebrate-pop border-yellow-400 bg-[#3e2723] shadow-[0_0_50px_rgba(253,224,71,0.4)]">
@@ -1287,6 +1791,10 @@
                   </button>
                   <button onClick={() => setShowCalendar(true)} className="mc-button mc-wood px-3 py-1.5 flex items-center gap-1 font-bold text-xs md:text-sm">
                     <span className="text-base">📅</span> 日曆
+                  </button>
+                  <button onClick={() => setShowHouseRules(true)} className="mc-button mc-gold px-3 py-1.5 flex items-center gap-1 font-bold text-xs md:text-sm text-[#3e2723] relative">
+                    <span className="text-base">📜</span> 家規
+                    {hasUnsignedRules && <span className="absolute -top-1 -right-1 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-[#e53935] border-2 border-[#111]"></span></span>}
                   </button>
                 </div>
                 <div className="text-right">
